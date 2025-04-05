@@ -6,19 +6,19 @@ use std::ops::{Add, Mul};
 #[derive(Debug, Clone, PartialEq)]
 pub struct DenseUnivariatePolynomial<F: PrimeField> {
     // 1 coefficient for each power of x
-    coefficients: Vec<F>,
+    pub coefficients: Vec<F>,
 }
 
 impl<F: PrimeField> DenseUnivariatePolynomial<F> {
-    fn new(coefficients: Vec<F>) -> Self {
+    pub fn new(coefficients: Vec<F>) -> Self {
         Self { coefficients }
     }
 
-    fn degree(&self) -> usize {
+    pub fn degree(&self) -> usize {
         self.coefficients.len() - 1
     }
 
-    fn scalar_mul(&self, scalar: F) -> Self {
+    pub fn scalar_mul(&self, scalar: F) -> Self {
         DenseUnivariatePolynomial {
             coefficients: self
                 .coefficients
@@ -28,7 +28,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
         }
     }
 
-    fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
+    pub fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
         //  numerator
         let numerators = interpolating_set
             .iter()
@@ -42,7 +42,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
         numerators.scalar_mul(denominator)
     }
 
-    fn evaluate(&self, x: F) -> F {
+    pub fn evaluate(&self, x: F) -> F {
         // for loop method
         // let mut eval = 0.0;
         // let mut current_x = 1.0;
@@ -69,7 +69,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
         //     .sum()
     }
 
-    fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
+    pub fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
         assert_eq!(xs.len(), ys.len());
         // dot product between the ys and the lagrange basis
 
@@ -149,7 +149,7 @@ mod tests {
     use super::*;
     use ark_bls12_381::Fq;
 
-    fn test_poly() -> super::DenseUnivariatePolynomial<Fq> {
+    fn test_poly() -> DenseUnivariatePolynomial<Fq> {
         let coeffs = vec![Fq::from(1), Fq::from(2), Fq::from(3)];
 
         DenseUnivariatePolynomial::new(coeffs)

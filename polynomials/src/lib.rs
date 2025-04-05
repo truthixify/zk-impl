@@ -1,1 +1,1 @@
-mod univariate;
+pub mod univariate;

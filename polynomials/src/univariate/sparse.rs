@@ -8,18 +8,18 @@ pub struct SparseUnivariatePolynomial<F: PrimeField> {
 }
 
 impl<F: PrimeField> SparseUnivariatePolynomial<F> {
-    fn new(terms: Vec<(F, usize)>) -> Self {
+    pub fn new(terms: Vec<(F, usize)>) -> Self {
         Self { terms }
     }
 
-    fn degree(&self) -> usize {
+    pub fn degree(&self) -> usize {
         match self.terms.iter().max_by_key(|&(_, exp)| exp) {
             Some((_, degree)) => *degree,
             None => 0,
         }
     }
 
-    fn scalar_mul(&self, scalar: F) -> Self {
+    pub fn scalar_mul(&self, scalar: F) -> Self {
         let new_terms = self
             .terms
             .iter()
@@ -29,7 +29,7 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
         Self { terms: new_terms }
     }
 
-    fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
+    pub fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
         //  numerator
         let numerators = interpolating_set
             .iter()
@@ -43,14 +43,14 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
         numerators.scalar_mul(denominator)
     }
 
-    fn evaluate(&self, x: F) -> F {
+    pub fn evaluate(&self, x: F) -> F {
         self.terms
             .iter()
             .map(|(coeff, exp)| coeff.mul(x.pow([*exp as u64])))
             .sum()
     }
 
-    fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
+    pub fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
         assert_eq!(xs.len(), ys.len());
 
         xs.iter()
@@ -146,7 +146,7 @@ mod tests {
     use super::*;
     use ark_bls12_381::Fq;
 
-    fn test_poly() -> super::SparseUnivariatePolynomial<Fq> {
+    fn test_poly() -> SparseUnivariatePolynomial<Fq> {
         let coeffs = vec![(Fq::from(1), 0), (Fq::from(2), 1), (Fq::from(3), 2)];
 
         SparseUnivariatePolynomial::new(coeffs)
