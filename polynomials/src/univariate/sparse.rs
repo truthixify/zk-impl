@@ -1,13 +1,14 @@
+use ark_ff::PrimeField;
 use std::iter::{Product, Sum};
 use std::ops::{Add, Mul};
 
 #[derive(Debug, Clone, PartialEq)]
-pub struct SparseUnivariatePolynomial {
-    terms: Vec<(f64, usize)>,
+pub struct SparseUnivariatePolynomial<F: PrimeField> {
+    terms: Vec<(F, usize)>,
 }
 
-impl SparseUnivariatePolynomial {
-    fn new(terms: Vec<(f64, usize)>) -> Self {
+impl<F: PrimeField> SparseUnivariatePolynomial<F> {
+    fn new(terms: Vec<(F, usize)>) -> Self {
         Self { terms }
     }
 
@@ -18,38 +19,38 @@ impl SparseUnivariatePolynomial {
         }
     }
 
-    fn scalar_mul(&self, scalar: f64) -> Self {
+    fn scalar_mul(&self, scalar: F) -> Self {
         let new_terms = self
             .terms
             .iter()
-            .map(|(coeff, exp)| (coeff * scalar, *exp))
-            .collect::<Vec<(f64, usize)>>();
+            .map(|(coeff, exp)| (coeff.mul(scalar), *exp))
+            .collect::<Vec<(F, usize)>>();
 
         Self { terms: new_terms }
     }
 
-    fn basis(x: f64, interpolating_set: &Vec<f64>) -> Self {
+    fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
         //  numerator
         let numerators = interpolating_set
             .iter()
             .filter(|&val| *val != x)
-            .map(|x_prime| Self::new(vec![(-x_prime, 0), (1.0, 1)]))
-            .product::<SparseUnivariatePolynomial>();
+            .map(|x_prime| Self::new(vec![(x_prime.neg(), 0), (F::ONE, 1)]))
+            .product::<SparseUnivariatePolynomial<F>>();
 
         // denominator
-        let denominator = 1.0 / numerators.evaluate(x);
+        let denominator = F::ONE.div(numerators.evaluate(x));
 
         numerators.scalar_mul(denominator)
     }
 
-    fn evaluate(&self, x: f64) -> f64 {
+    fn evaluate(&self, x: F) -> F {
         self.terms
             .iter()
-            .map(|(coeff, exp)| coeff * x.powf(*exp as f64))
+            .map(|(coeff, exp)| coeff.mul(x.pow([*exp as u64])))
             .sum()
     }
 
-    fn interpolate(xs: Vec<f64>, ys: Vec<f64>) -> Self {
+    fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
         assert_eq!(xs.len(), ys.len());
 
         xs.iter()
@@ -59,8 +60,8 @@ impl SparseUnivariatePolynomial {
     }
 }
 
-impl Add for SparseUnivariatePolynomial {
-    type Output = SparseUnivariatePolynomial;
+impl<F: PrimeField> Add for SparseUnivariatePolynomial<F> {
+    type Output = SparseUnivariatePolynomial<F>;
 
     fn add(self, rhs: Self) -> Self::Output {
         let (bigger_poly, smaller_poly) = if self.degree() < rhs.degree() {
@@ -82,7 +83,7 @@ impl Add for SparseUnivariatePolynomial {
                 std::cmp::Ordering::Greater => {
                     Some((coeff2, exp2)).into_iter().chain(Some((coeff1, exp1)))
                 }
-                std::cmp::Ordering::Equal => (coeff1 + coeff2 != 0.0)
+                std::cmp::Ordering::Equal => (coeff1 + coeff2 != F::ZERO)
                     .then_some((coeff1 + coeff2, exp1))
                     .into_iter()
                     .chain(None),
@@ -100,8 +101,8 @@ impl Add for SparseUnivariatePolynomial {
     }
 }
 
-impl Mul for SparseUnivariatePolynomial {
-    type Output = SparseUnivariatePolynomial;
+impl<F: PrimeField> Mul for SparseUnivariatePolynomial<F> {
+    type Output = SparseUnivariatePolynomial<F>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         // mul for sparse
@@ -116,9 +117,9 @@ impl Mul for SparseUnivariatePolynomial {
     }
 }
 
-impl Sum for SparseUnivariatePolynomial {
+impl<F: PrimeField> Sum for SparseUnivariatePolynomial<F> {
     fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut result = SparseUnivariatePolynomial::new(vec![(0.0, 0)]);
+        let mut result = SparseUnivariatePolynomial::new(vec![(F::ZERO, 0)]);
 
         for poly in iter {
             result = result + poly;
@@ -128,9 +129,9 @@ impl Sum for SparseUnivariatePolynomial {
     }
 }
 
-impl Product for SparseUnivariatePolynomial {
+impl<F: PrimeField> Product for SparseUnivariatePolynomial<F> {
     fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        let mut result = SparseUnivariatePolynomial::new(vec![(1.0, 0)]);
+        let mut result = SparseUnivariatePolynomial::new(vec![(F::ONE, 0)]);
 
         for poly in iter {
             result = result * poly
@@ -143,44 +144,59 @@ impl Product for SparseUnivariatePolynomial {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use ark_bls12_381::Fq;
+
+    fn test_poly() -> super::SparseUnivariatePolynomial<Fq> {
+        let coeffs = vec![(Fq::from(1), 0), (Fq::from(2), 1), (Fq::from(3), 2)];
+
+        SparseUnivariatePolynomial::new(coeffs)
+    }
 
     #[test]
     fn test_degree() {
         // f(x) = 1 + 2x + 3x^2
-        let poly = SparseUnivariatePolynomial::new(vec![(1.0, 0), (2.0, 1), (3.0, 2)]);
+        let poly = test_poly();
 
         assert_eq!(poly.degree(), 2);
     }
 
     #[test]
     fn test_evaluation() {
-        let poly = SparseUnivariatePolynomial::new(vec![(1.0, 0), (2.0, 1), (3.0, 2)]);
+        let poly = test_poly();
 
-        assert_eq!(poly.evaluate(2.0), 17.0);
+        assert_eq!(poly.evaluate(Fq::from(2)), Fq::from(17));
     }
 
     #[test]
     fn test_scalar_mul() {
-        let poly = SparseUnivariatePolynomial::new(vec![(1.0, 0), (2.0, 1), (3.0, 2)]);
-        let expected_result = SparseUnivariatePolynomial::new(vec![(2.0, 0), (4.0, 1), (6.0, 2)]);
+        let poly = test_poly();
+        let expected_result = SparseUnivariatePolynomial::new(vec![
+            (Fq::from(2), 0),
+            (Fq::from(4), 1),
+            (Fq::from(6), 2),
+        ]);
 
-        assert_eq!(poly.scalar_mul(2.0), expected_result);
+        assert_eq!(poly.scalar_mul(Fq::from(2)), expected_result);
     }
 
     #[test]
     fn test_addition() {
         let expected_result = SparseUnivariatePolynomial::new(vec![
-            (4.0, 0),
-            (6.0, 1),
-            (3.0, 2),
-            (5.0, 11),
-            (-1.0, 120),
+            (Fq::from(4), 0),
+            (Fq::from(6), 1),
+            (Fq::from(3), 2),
+            (Fq::from(5), 11),
+            (Fq::from(-1), 120),
         ]);
         // f(x) = 1 + 2x + 3x^2
-        let poly_1 = SparseUnivariatePolynomial::new(vec![(1.0, 0), (2.0, 1), (3.0, 2)]);
+        let poly_1 = test_poly();
         // f(x) = 3 + 4x + 5x^11
-        let poly_2 =
-            SparseUnivariatePolynomial::new(vec![(3.0, 0), (4.0, 1), (5.0, 11), (-1.0, 120)]);
+        let poly_2 = SparseUnivariatePolynomial::new(vec![
+            (Fq::from(3), 0),
+            (Fq::from(4), 1),
+            (Fq::from(5), 11),
+            (Fq::from(-1), 120),
+        ]);
 
         assert_eq!(poly_1 + poly_2, expected_result);
     }
@@ -188,11 +204,15 @@ mod tests {
     #[test]
     fn test_multiplication() {
         // f(x) = 5 + 2x^2
-        let poly_1 = SparseUnivariatePolynomial::new(vec![(5.0, 0), (2.0, 2)]);
+        let poly_1 = SparseUnivariatePolynomial::new(vec![(Fq::from(5), 0), (Fq::from(2), 2)]);
         // f(x) = 6 + 2x
-        let poly_2 = SparseUnivariatePolynomial::new(vec![(6.0, 0), (2.0, 1)]);
-        let expected_result =
-            SparseUnivariatePolynomial::new(vec![(30.0, 0), (10.0, 1), (12.0, 2), (4.0, 3)]);
+        let poly_2 = SparseUnivariatePolynomial::new(vec![(Fq::from(6), 0), (Fq::from(2), 1)]);
+        let expected_result = SparseUnivariatePolynomial::new(vec![
+            (Fq::from(30), 0),
+            (Fq::from(10), 1),
+            (Fq::from(12), 2),
+            (Fq::from(4), 3),
+        ]);
 
         assert_eq!(poly_1 * poly_2, expected_result);
     }
@@ -202,9 +222,11 @@ mod tests {
         // f(x) = 2x
         // [(2, 4), (4, 8)]
 
-        let interpolated_poly =
-            SparseUnivariatePolynomial::interpolate(vec![2.0, 4.0], vec![4.0, 8.0]);
-        let expected_result = SparseUnivariatePolynomial::new(vec![(2.0, 1)]);
+        let interpolated_poly = SparseUnivariatePolynomial::interpolate(
+            vec![Fq::from(2), Fq::from(4)],
+            vec![Fq::from(4), Fq::from(8)],
+        );
+        let expected_result = SparseUnivariatePolynomial::new(vec![(Fq::from(2), 1)]);
 
         assert_eq!(interpolated_poly, expected_result);
     }
