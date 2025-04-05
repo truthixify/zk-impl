@@ -7,7 +7,9 @@ pub fn shares<F: PrimeField>(secret: F, num_shares: u64, threshold: u64) -> Vec<
     let mut coeffs = (1..threshold)
         .map(|_| F::rand(&mut rng))
         .collect::<Vec<F>>();
+
     coeffs.splice(0..0, [secret]);
+
     let poly = DenseUnivariatePolynomial::new(coeffs);
 
     for i in 1..num_shares {
@@ -20,10 +22,12 @@ pub fn shares<F: PrimeField>(secret: F, num_shares: u64, threshold: u64) -> Vec<
 pub fn recover_secret<F: PrimeField>(shares: Vec<(F, F)>) -> F {
     let mut xs: Vec<F> = Vec::new();
     let mut ys: Vec<F> = Vec::new();
+
     for share in shares {
         xs.push(share.0);
         ys.push(share.1);
     }
+
     let poly = DenseUnivariatePolynomial::interpolate(xs, ys);
     let secret = poly.evaluate(F::from(0));
 
