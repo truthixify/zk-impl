@@ -1,7 +1,7 @@
-use ark_ff::UniformRand;
-use criterion::{black_box, Criterion};
 use ark_bls12_381::Fq;
-use shamir_secret_sharing::sss_with_password::{shares, recover_secret};
+use ark_ff::UniformRand;
+use criterion::{Criterion, black_box};
+use shamir_secret_sharing::sss_with_password::{recover_secret, shares};
 
 pub fn sss_with_password_benchmarks(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
