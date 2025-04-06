@@ -80,7 +80,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
     }
 }
 
-impl<F: PrimeField> Mul for DenseUnivariatePolynomial<F> {
+impl<F: PrimeField> Mul for &DenseUnivariatePolynomial<F> {
     type Output = DenseUnivariatePolynomial<F>;
 
     fn mul(self, rhs: Self) -> Self::Output {
@@ -104,14 +104,14 @@ impl<F: PrimeField> Product for DenseUnivariatePolynomial<F> {
         let mut result = DenseUnivariatePolynomial::new(vec![F::ONE]);
 
         for poly in iter {
-            result = result * poly
+            result = &result * &poly
         }
 
         result
     }
 }
 
-impl<F: PrimeField> Add for DenseUnivariatePolynomial<F> {
+impl<F: PrimeField> Add for &DenseUnivariatePolynomial<F> {
     type Output = DenseUnivariatePolynomial<F>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -137,7 +137,7 @@ impl<F: PrimeField> Sum for DenseUnivariatePolynomial<F> {
         let mut result = DenseUnivariatePolynomial::new(vec![F::ZERO]);
 
         for poly in iter {
-            result = result + poly;
+            result = &result + &poly;
         }
 
         result
@@ -210,7 +210,7 @@ mod tests {
             Fq::from(5),
         ]);
 
-        assert_eq!(poly_1 + poly_2, expected_result);
+        assert_eq!(&poly_1 + &poly_2, expected_result);
     }
 
     #[test]
@@ -226,7 +226,7 @@ mod tests {
             Fq::from(4),
         ]);
 
-        assert_eq!(poly_1 * poly_2, expected_result);
+        assert_eq!(&poly_1 * &poly_2, expected_result);
     }
 
     #[test]

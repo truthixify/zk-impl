@@ -60,7 +60,7 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
     }
 }
 
-impl<F: PrimeField> Add for SparseUnivariatePolynomial<F> {
+impl<F: PrimeField> Add for &SparseUnivariatePolynomial<F> {
     type Output = SparseUnivariatePolynomial<F>;
 
     fn add(self, rhs: Self) -> Self::Output {
@@ -101,15 +101,15 @@ impl<F: PrimeField> Add for SparseUnivariatePolynomial<F> {
     }
 }
 
-impl<F: PrimeField> Mul for SparseUnivariatePolynomial<F> {
+impl<F: PrimeField> Mul for &SparseUnivariatePolynomial<F> {
     type Output = SparseUnivariatePolynomial<F>;
 
     fn mul(self, rhs: Self) -> Self::Output {
         // mul for sparse
         let mut result = vec![];
-        for (coeff1, exp1) in self.terms {
+        for (coeff1, exp1) in &self.terms {
             for (coeff2, exp2) in &rhs.terms {
-                result.push((coeff1 * coeff2, exp1 + exp2));
+                result.push((*coeff1 * coeff2, exp1 + exp2));
             }
         }
 
@@ -122,7 +122,7 @@ impl<F: PrimeField> Sum for SparseUnivariatePolynomial<F> {
         let mut result = SparseUnivariatePolynomial::new(vec![(F::ZERO, 0)]);
 
         for poly in iter {
-            result = result + poly;
+            result = &result + &poly;
         }
 
         result
@@ -134,7 +134,7 @@ impl<F: PrimeField> Product for SparseUnivariatePolynomial<F> {
         let mut result = SparseUnivariatePolynomial::new(vec![(F::ONE, 0)]);
 
         for poly in iter {
-            result = result * poly
+            result = &result * &poly
         }
 
         result
@@ -198,7 +198,7 @@ mod tests {
             (Fq::from(-1), 120),
         ]);
 
-        assert_eq!(poly_1 + poly_2, expected_result);
+        assert_eq!(&poly_1 + &poly_2, expected_result);
     }
 
     #[test]
@@ -214,7 +214,7 @@ mod tests {
             (Fq::from(4), 3),
         ]);
 
-        assert_eq!(poly_1 * poly_2, expected_result);
+        assert_eq!(&poly_1 * &poly_2, expected_result);
     }
 
     #[test]
