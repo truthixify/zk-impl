@@ -64,38 +64,70 @@ impl<F: PrimeField> Add for &SparseUnivariatePolynomial<F> {
     type Output = SparseUnivariatePolynomial<F>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        let (bigger_poly, smaller_poly) = if self.degree() < rhs.degree() {
-            (rhs.clone(), self)
-        } else {
-            (self.clone(), rhs)
-        };
-        let min_len = smaller_poly.terms.len();
+        // let (bigger_poly, smaller_poly) = if self.degree() < rhs.degree() {
+        //     (rhs.clone(), self)
+        // } else {
+        //     (self.clone(), rhs)
+        // };
+        // let min_len = smaller_poly.terms.len();
 
-        let min_terms = bigger_poly
-            .terms
-            .iter()
-            .take(min_len)
-            .zip(smaller_poly.terms.iter())
-            .flat_map(|(&(coeff1, exp1), &(coeff2, exp2))| match exp1.cmp(&exp2) {
-                std::cmp::Ordering::Less => {
-                    Some((coeff1, exp1)).into_iter().chain(Some((coeff2, exp2)))
-                }
-                std::cmp::Ordering::Greater => {
-                    Some((coeff2, exp2)).into_iter().chain(Some((coeff1, exp1)))
-                }
-                std::cmp::Ordering::Equal => (coeff1 + coeff2 != F::ZERO)
-                    .then_some((coeff1 + coeff2, exp1))
-                    .into_iter()
-                    .chain(None),
-            });
+        // let min_terms = bigger_poly
+        //     .terms
+        //     .iter()
+        //     .take(min_len)
+        //     .zip(smaller_poly.terms.iter())
+        //     .flat_map(|(&(coeff1, exp1), &(coeff2, exp2))| match exp1.cmp(&exp2) {
+        //         std::cmp::Ordering::Less => {
+        //             Some((coeff1, exp1)).into_iter().chain(Some((coeff2, exp2)))
+        //         }
+        //         std::cmp::Ordering::Greater => {
+        //             Some((coeff2, exp2)).into_iter().chain(Some((coeff1, exp1)))
+        //         }
+        //         std::cmp::Ordering::Equal => (coeff1 + coeff2 != F::ZERO)
+        //             .then_some((coeff1 + coeff2, exp1))
+        //             .into_iter()
+        //             .chain(None),
+        //     });
 
-        let rest = bigger_poly
-            .terms
-            .iter()
-            .skip(min_len)
-            .map(|&(coeff, exp)| (coeff, exp));
+        // let rest = bigger_poly
+        //     .terms
+        //     .iter()
+        //     .skip(min_len)
+        //     .map(|&(coeff, exp)| (coeff, exp));
 
-        let summed_terms = min_terms.chain(rest).collect();
+        // let summed_terms = min_terms.chain(rest).collect();
+        let mut summed_terms = vec![];
+        let mut i = 0;
+        let mut j = 0;
+
+        while i < self.terms.len() && j < rhs.terms.len() {
+            let (coeff1, exp1) = self.terms[i];
+            let (coeff2, exp2) = rhs.terms[j];
+
+            if exp1 == exp2 {
+                summed_terms.push((coeff1.add(coeff2), exp1));
+                i += 1;
+                j += 1;
+            } else if exp1 < exp2 {
+                summed_terms.push((coeff1, exp1));
+                i += 1;
+            } else {
+                summed_terms.push((coeff2, exp2));
+                j += 1;
+            }
+        }
+
+        while i < self.terms.len() {
+            summed_terms.push(self.terms[i]);
+            i += 1;
+        }
+
+        while j < rhs.terms.len() {
+            summed_terms.push(rhs.terms[j]);
+            j += 1;
+        }
+
+        summed_terms.retain(|&(coeff, _)| coeff != F::ZERO);
 
         SparseUnivariatePolynomial::new(summed_terms)
     }
