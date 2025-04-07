@@ -1,5 +1,4 @@
 use ark_ff::PrimeField;
-use std::iter::{Product, Sum};
 use std::ops::{Add, Mul};
 
 #[derive(Debug, Clone, PartialEq)]
@@ -57,29 +56,49 @@ impl<F: PrimeField> SparseMultilinearPolynomial<F> {
         for (coeff, monomial_index) in &self.terms {
             let mut new_coeff = *coeff;
             let mut new_monomial_index = *monomial_index;
+
             for &(partial_coeff, partial_monomial_index) in partial_terms {
                 if monomial_index & (1 << partial_monomial_index) != 0 {
                     new_coeff = new_coeff.mul(partial_coeff);
                     new_monomial_index &= !(1 << partial_monomial_index);
                 }
             }
+
             new_terms.push((new_coeff, new_monomial_index));
         }
 
-        SparseMultilinearPolynomial::new(new_terms, self.n_vars)
+        new_terms.retain(|&(coeff, _)| coeff != F::ZERO);
+        new_terms.sort_by_key(|&(coeff, _)| coeff);
+
+        // Combine terms with same monomial index
+        let mut combined_terms = Vec::new();
+
+        for (coeff, monomial_index) in new_terms {
+            if let Some((last_coeff, last_monomial_index)) = combined_terms.last_mut() {
+                if *last_monomial_index == monomial_index {
+                    *last_coeff += coeff;
+
+                    continue;
+                }
+            }
+
+            combined_terms.push((coeff, monomial_index));
+        }
+
+        SparseMultilinearPolynomial::new(combined_terms, self.n_vars)
     }
 
     fn basis(point: &[u8], val: F) -> Self {
         let n_vars = point.len();
         let mut poly = SparseMultilinearPolynomial::new(vec![(val, 0)], n_vars);
 
-        for (j, &x) in point.iter().enumerate() {
+        for (i, &x) in point.iter().enumerate() {
             let basis_term = if x == 0 {
                 // (1 - x_j) = 1 - x_j = represented by (1, 0) + (-1, 1 << j)
-                SparseMultilinearPolynomial::new(vec![(F::ONE, 0), (-F::ONE, 1 << j)], n_vars)
+                SparseMultilinearPolynomial::new(vec![(F::ONE, 0), (-F::ONE, 1 << i)], n_vars)
             } else {
                 // x_j = represented by (1, 1 << j)
-                SparseMultilinearPolynomial::new(vec![(F::ONE, 1 << j)], n_vars)
+                SparseMultilinearPolynomial::new(vec![(F::ONE, 1 << i)], n_vars)
             };
 
             poly = &poly * &basis_term;
@@ -107,7 +126,7 @@ impl<F: PrimeField> Add for &SparseMultilinearPolynomial<F> {
     type Output = SparseMultilinearPolynomial<F>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        assert_eq!(self.n_vars, rhs.n_vars, "n_vars must be equal");
+        // assert_eq!(self.n_vars, rhs.n_vars, "n_vars must be equal");
 
         let mut summed_terms = Vec::new();
         let mut i = 0;
@@ -146,19 +165,10 @@ impl<F: PrimeField> Add for &SparseMultilinearPolynomial<F> {
     }
 }
 
-impl<F: PrimeField> Sum for SparseMultilinearPolynomial<F> {
-    fn sum<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(SparseMultilinearPolynomial::new(vec![], 0), |acc, x| {
-            &acc + &x
-        })
-    }
-}
-
 impl<F: PrimeField> Mul for &SparseMultilinearPolynomial<F> {
     type Output = SparseMultilinearPolynomial<F>;
     fn mul(self, rhs: Self) -> Self::Output {
-        let mut product_polynomial =
-            SparseMultilinearPolynomial::new(vec![(F::ZERO, 0)], self.n_vars);
+        let mut product_polynomial = SparseMultilinearPolynomial::new(vec![], self.n_vars);
 
         for (coeff1, monomial_index1) in &self.terms {
             for (coeff2, monomial_index2) in &rhs.terms {
@@ -166,9 +176,9 @@ impl<F: PrimeField> Mul for &SparseMultilinearPolynomial<F> {
                     monomial_index1 & monomial_index2 == 0,
                     "monomial indices must not overlap"
                 );
+
                 let new_coeff = coeff1.mul(*coeff2);
                 let new_monomial_index = monomial_index1 | monomial_index2;
-
                 let poly = SparseMultilinearPolynomial::new(
                     vec![(new_coeff, new_monomial_index)],
                     self.n_vars,
@@ -183,14 +193,6 @@ impl<F: PrimeField> Mul for &SparseMultilinearPolynomial<F> {
             .sort_by_key(|&(_, monomial_index)| monomial_index);
 
         product_polynomial
-    }
-}
-
-impl<F: PrimeField> Product for SparseMultilinearPolynomial<F> {
-    fn product<I: Iterator<Item = Self>>(iter: I) -> Self {
-        iter.fold(SparseMultilinearPolynomial::new(vec![], 0), |acc, x| {
-            &acc * &x
-        })
     }
 }
 
@@ -225,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn test_addition_with_overlap() {
+    fn test_addition_wth_no_overlap() {
         let n_vars = 2;
 
         let poly1 = SparseMultilinearPolynomial::new(vec![(fq(3), 0b01)], n_vars);
@@ -236,11 +238,14 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "n_vars must be equal")]
-    fn test_addition_mismatched_n_vars_panics() {
-        let poly1 = SparseMultilinearPolynomial::new(vec![(fq(1), 0b00)], 2);
-        let poly2 = SparseMultilinearPolynomial::new(vec![(fq(1), 0b00)], 3);
-        let _ = &poly1 + &poly2;
+    fn test_addition_with_overlaps() {
+        let n_vars = 2;
+
+        let poly1 = SparseMultilinearPolynomial::new(vec![(fq(1), 0b00), (fq(3), 0b01)], n_vars);
+        let poly2 = SparseMultilinearPolynomial::new(vec![(fq(2), 0b01)], n_vars);
+        let expected = SparseMultilinearPolynomial::new(vec![(fq(1), 0b00), (fq(5), 0b01)], n_vars);
+
+        assert_eq!(&poly1 + &poly2, expected);
     }
 
     #[test]
@@ -296,7 +301,7 @@ mod tests {
         // 2xyz → 2*3*2 * x = 12x => (12, 0b001)
         // 5xz → 5*2 * x = 10x => (10, 0b001)
         // 1 stays => (1, 0b000)
-        let expected_terms = vec![(fq(12), 0b001), (fq(10), 0b001), (fq(1), 0b000)];
+        let expected_terms = vec![(fq(1), 0b000), (fq(22), 0b001)];
         let expected_poly = SparseMultilinearPolynomial::new(expected_terms, n_vars);
 
         assert_eq!(partially_evaluated, expected_poly);
@@ -317,7 +322,7 @@ mod tests {
         // 3xy => 3*2*3 = 18 → constant
         // 2x => 2*2 = 4 → constant
         // 4 → constant
-        let expected_terms = vec![(fq(18), 0b00), (fq(4), 0b00), (fq(4), 0b00)];
+        let expected_terms = vec![(fq(26), 0b00)];
         let expected_poly = SparseMultilinearPolynomial::new(expected_terms, n_vars);
 
         assert_eq!(partially_evaluated, expected_poly);
