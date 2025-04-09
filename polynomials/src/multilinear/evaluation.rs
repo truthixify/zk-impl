@@ -6,15 +6,13 @@ pub struct MultilinearPolynomial<F: PrimeField> {
 }
 
 impl<F: PrimeField> MultilinearPolynomial<F> {
-    fn new(evals: &[F]) -> Self {
+    pub fn new(evals: Vec<F>) -> Self {
         assert!(
             evals.len().is_power_of_two(),
             "Number of evaluations must be a power of two"
         );
 
-        Self {
-            evals: evals.to_vec(),
-        }
+        Self { evals }
     }
 
     pub fn n_vars(&self) -> usize {
@@ -92,7 +90,7 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
             current_n_vars -= 1;
         }
 
-        MultilinearPolynomial::new(&evals)
+        MultilinearPolynomial::new(evals)
     }
 
     pub fn tensor_add(&self, other: &Self) -> Self {
@@ -143,7 +141,7 @@ mod tests {
     #[test]
     fn test_evaluate() {
         let evaluated_values = vec![Fq::from(0), Fq::from(0), Fq::from(3), Fq::from(8)];
-        let polynomial = MultilinearPolynomial::new(&evaluated_values);
+        let polynomial = MultilinearPolynomial::new(evaluated_values);
         let values = vec![Fq::from(6), Fq::from(2)];
 
         assert_eq!(polynomial.evaluate(&values), Fq::from(78));
@@ -153,45 +151,53 @@ mod tests {
     fn test_partial_evaluate() {
         // 3-variable polynomial over (a, b, c)
         // Evaluation order: (a, b, c) in lex: 000, 001, 010, 011, 100, 101, 110, 111
-        let poly_abc =
-            MultilinearPolynomial::new(&[fq(1), fq(3), fq(5), fq(7), fq(2), fq(4), fq(6), fq(8)]);
+        let poly_abc = MultilinearPolynomial::new(vec![
+            fq(1),
+            fq(3),
+            fq(5),
+            fq(7),
+            fq(2),
+            fq(4),
+            fq(6),
+            fq(8),
+        ]);
 
         // Fix c = 0 → reduces to polynomial over (a, b)
         // Retains values at c=0: indices 0, 2, 4, 6
         assert_eq!(
             poly_abc.partial_evaluate(&[(fq(0), 2)]),
-            MultilinearPolynomial::new(&[fq(1), fq(5), fq(2), fq(6)])
+            MultilinearPolynomial::new(vec![fq(1), fq(5), fq(2), fq(6)])
         );
 
         // Fix b = 1 → reduces to polynomial over (a, c)
         // Indices with b=1: (0,1,0)=2, (0,1,1)=3, (1,1,0)=6, (1,1,1)=7 → [5, 7, 6, 8]
         assert_eq!(
             poly_abc.partial_evaluate(&[(fq(1), 1)]),
-            MultilinearPolynomial::new(&[fq(5), fq(7), fq(6), fq(8)])
+            MultilinearPolynomial::new(vec![fq(5), fq(7), fq(6), fq(8)])
         );
 
         // Fix a = 1, c = 1 → indices: (1,0,1)=5, (1,1,1)=7 → [4, 8]
         assert_eq!(
             poly_abc.partial_evaluate(&[(fq(1), 0), (fq(1), 2)]),
-            MultilinearPolynomial::new(&[fq(4), fq(8)])
+            MultilinearPolynomial::new(vec![fq(4), fq(8)])
         );
 
         // Fix a = 0, b = 0 → (0,0,0)=1, (0,0,1)=3
         assert_eq!(
             poly_abc.partial_evaluate(&[(fq(0), 0), (fq(0), 1)]),
-            MultilinearPolynomial::new(&[fq(1), fq(3)])
+            MultilinearPolynomial::new(vec![fq(1), fq(3)])
         );
 
         // Fix a = 0, b = 1, c = 0 → single point: (0,1,0)=2 → value 5
         assert_eq!(
             poly_abc.partial_evaluate(&[(fq(0), 0), (fq(1), 1), (fq(0), 2)]),
-            MultilinearPolynomial::new(&[fq(5)])
+            MultilinearPolynomial::new(vec![fq(5)])
         );
 
         // -------------------------------
         // New test: 4-variable polynomial over (a, b, c, d)
         // Evaluation order: (a, b, c, d) lex order → 16 entries
-        let poly_abcd = MultilinearPolynomial::new(&[
+        let poly_abcd = MultilinearPolynomial::new(vec![
             fq(1),
             fq(2),
             fq(3),
@@ -213,7 +219,7 @@ mod tests {
         // Fix d = 0 → keep every even index
         assert_eq!(
             poly_abcd.partial_evaluate(&[(fq(0), 3)]),
-            MultilinearPolynomial::new(&[
+            MultilinearPolynomial::new(vec![
                 fq(1),
                 fq(3),
                 fq(5),
@@ -228,26 +234,27 @@ mod tests {
         // Fix b = 1, c = 0 → pick (a,1,0,d): indices 4,5,12,13 → values [5,6,13,14]
         assert_eq!(
             poly_abcd.partial_evaluate(&[(fq(1), 1), (fq(0), 2)]),
-            MultilinearPolynomial::new(&[fq(5), fq(6), fq(13), fq(14)])
+            MultilinearPolynomial::new(vec![fq(5), fq(6), fq(13), fq(14)])
         );
 
         // Fix a = 0, b = 1, c = 1 → indices: (0,1,1,0)=6, (0,1,1,1)=7 → [7,8]
         assert_eq!(
             poly_abcd.partial_evaluate(&[(fq(0), 0), (fq(1), 1), (fq(1), 2)]),
-            MultilinearPolynomial::new(&[fq(7), fq(8)])
+            MultilinearPolynomial::new(vec![fq(7), fq(8)])
         );
 
         // Fix all: a=1, b=0, c=1, d=0 → (1,0,1,0) = index 10 → value 11
         assert_eq!(
             poly_abcd.partial_evaluate(&[(fq(1), 0), (fq(0), 1), (fq(1), 2), (fq(0), 3)]),
-            MultilinearPolynomial::new(&[fq(11)])
+            MultilinearPolynomial::new(vec![fq(11)])
         );
     }
 
     #[test]
     fn test_new_and_n_vars() {
         let evals = vec![fq(0), fq(1), fq(2), fq(3)];
-        let poly = MultilinearPolynomial::new(&evals);
+        let poly = MultilinearPolynomial::new(evals.clone());
+
         assert_eq!(poly.evals, evals);
         assert_eq!(poly.n_vars(), 2);
     }
@@ -256,13 +263,13 @@ mod tests {
     #[should_panic(expected = "Number of evaluations must be a power of two")]
     fn test_new_invalid_length() {
         let evals = vec![fq(0), fq(1), fq(2)];
-        let _ = MultilinearPolynomial::new(&evals); // Should panic
+        let _ = MultilinearPolynomial::new(evals); // Should panic
     }
 
     #[test]
     fn test_scalar_mul() {
         let evals = vec![fq(1), fq(2), fq(3), fq(4)];
-        let poly = MultilinearPolynomial::new(&evals);
+        let poly = MultilinearPolynomial::new(evals);
         let result = poly.scalar_mul(fq(2));
         assert_eq!(result.evals, vec![fq(2), fq(4), fq(6), fq(8)]);
     }
@@ -270,7 +277,7 @@ mod tests {
     #[test]
     fn test_evaluate_constant_polynomial() {
         let evals = vec![fq(7), fq(7)];
-        let poly = MultilinearPolynomial::new(&evals);
+        let poly = MultilinearPolynomial::new(evals);
         assert_eq!(poly.evaluate(&[fq(0)]), fq(7));
         assert_eq!(poly.evaluate(&[fq(1)]), fq(7));
     }
@@ -279,7 +286,7 @@ mod tests {
     fn test_partial_evaluation_stepwise() {
         let evals = vec![fq(1), fq(2), fq(3), fq(4), fq(5), fq(6), fq(7), fq(8)];
 
-        let poly = MultilinearPolynomial::new(&evals);
+        let poly = MultilinearPolynomial::new(evals);
 
         let a = fq(1);
         let b = fq(0);
@@ -303,7 +310,7 @@ mod tests {
         let num_evals = 1 << num_vars;
 
         let evals: Vec<Fq> = (0..num_evals).map(|_| Fq::rand(&mut rng)).collect();
-        let poly = MultilinearPolynomial::new(&evals);
+        let poly = MultilinearPolynomial::new(evals);
 
         let assignment: Vec<Fq> = (0..num_vars).map(|_| Fq::rand(&mut rng)).collect();
         let full_eval = poly.evaluate(&assignment);
@@ -326,14 +333,14 @@ mod tests {
     #[should_panic(expected = "Number of points must match number of variables")]
     fn test_evaluate_invalid_input_length() {
         let evals = vec![fq(1), fq(2), fq(3), fq(4)];
-        let poly = MultilinearPolynomial::new(&evals);
+        let poly = MultilinearPolynomial::new(evals);
         let _ = poly.evaluate(&[fq(1)]); // Not enough points
     }
 
     #[test]
     fn test_tensor_add() {
-        let poly1 = MultilinearPolynomial::new(&[fq(1), fq(2), fq(3), fq(4)]);
-        let poly2 = MultilinearPolynomial::new(&[fq(5), fq(6), fq(7), fq(8)]);
+        let poly1 = MultilinearPolynomial::new(vec![fq(1), fq(2), fq(3), fq(4)]);
+        let poly2 = MultilinearPolynomial::new(vec![fq(5), fq(6), fq(7), fq(8)]);
         let result = poly1.tensor_add(&poly2);
 
         assert_eq!(result.evals, vec![fq(6), fq(8), fq(10), fq(12)]);
@@ -342,15 +349,15 @@ mod tests {
     #[test]
     #[should_panic(expected = "Polynomials must have the same number of evaluations")]
     fn test_tensor_add_invalid_length() {
-        let poly1 = MultilinearPolynomial::new(&[fq(1), fq(2), fq(3), fq(4)]);
-        let poly2 = MultilinearPolynomial::new(&[fq(5), fq(6)]);
+        let poly1 = MultilinearPolynomial::new(vec![fq(1), fq(2), fq(3), fq(4)]);
+        let poly2 = MultilinearPolynomial::new(vec![fq(5), fq(6)]);
         let _ = poly1.tensor_add(&poly2);
     }
 
     #[test]
     fn test_tensor_product() {
-        let poly1 = MultilinearPolynomial::new(&[fq(1), fq(2), fq(3), fq(4)]);
-        let poly2 = MultilinearPolynomial::new(&[fq(5), fq(6), fq(7), fq(8)]);
+        let poly1 = MultilinearPolynomial::new(vec![fq(1), fq(2), fq(3), fq(4)]);
+        let poly2 = MultilinearPolynomial::new(vec![fq(5), fq(6), fq(7), fq(8)]);
         let result = poly1.tensor_mul(&poly2);
 
         assert_eq!(result.evals, vec![fq(5), fq(12), fq(21), fq(32)]);
@@ -359,8 +366,8 @@ mod tests {
     #[test]
     #[should_panic(expected = "Polynomials must have the same number of evaluations")]
     fn test_tensor_mul_invalid_length() {
-        let poly1 = MultilinearPolynomial::new(&[fq(1), fq(2), fq(3), fq(4)]);
-        let poly2 = MultilinearPolynomial::new(&[fq(5), fq(6)]);
+        let poly1 = MultilinearPolynomial::new(vec![fq(1), fq(2), fq(3), fq(4)]);
+        let poly2 = MultilinearPolynomial::new(vec![fq(5), fq(6)]);
         let _ = poly1.tensor_mul(&poly2);
     }
 }

@@ -29,7 +29,7 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
         Self { terms: new_terms }
     }
 
-    pub fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
+    pub fn basis(x: F, interpolating_set: &[F]) -> Self {
         //  numerator
         let numerators = interpolating_set
             .iter()
@@ -50,7 +50,7 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
             .sum()
     }
 
-    pub fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
+    pub fn interpolate(xs: &[F], ys: &[F]) -> Self {
         assert_eq!(xs.len(), ys.len());
 
         xs.iter()
@@ -255,8 +255,8 @@ mod tests {
         // [(2, 4), (4, 8)]
 
         let interpolated_poly = SparseUnivariatePolynomial::interpolate(
-            vec![Fq::from(2), Fq::from(4)],
-            vec![Fq::from(4), Fq::from(8)],
+            &[Fq::from(2), Fq::from(4)],
+            &[Fq::from(4), Fq::from(8)],
         );
         let expected_result = SparseUnivariatePolynomial::new(vec![(Fq::from(2), 1)]);
 

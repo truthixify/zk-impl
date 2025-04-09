@@ -28,7 +28,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
         }
     }
 
-    pub fn basis(x: F, interpolating_set: &Vec<F>) -> Self {
+    pub fn basis(x: F, interpolating_set: &[F]) -> Self {
         //  numerator
         let numerators = interpolating_set
             .iter()
@@ -69,7 +69,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
         //     .sum()
     }
 
-    pub fn interpolate(xs: Vec<F>, ys: Vec<F>) -> Self {
+    pub fn interpolate(xs: &[F], ys: &[F]) -> Self {
         assert_eq!(xs.len(), ys.len());
         // dot product between the ys and the lagrange basis
 
@@ -235,8 +235,8 @@ mod tests {
         // [(2, 4), (4, 8)]
 
         let interpolated_poly = DenseUnivariatePolynomial::interpolate(
-            vec![Fq::from(2), Fq::from(4)],
-            vec![Fq::from(4), Fq::from(8)],
+            &[Fq::from(2), Fq::from(4)],
+            &[Fq::from(4), Fq::from(8)],
         );
         let expected_result = DenseUnivariatePolynomial::new(vec![Fq::from(0), Fq::from(2)]);
 

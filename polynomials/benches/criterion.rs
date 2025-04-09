@@ -4,6 +4,7 @@ mod univariate_benchmarks;
 
 use multilinear_benchmarks::{
     dense::dense_multilinear_polynomial_benchmarks,
+    evaluation::evaluation_form_multilinear_polynomial_benchmarks,
     sparse::sparse_multilinear_polynomial_benchmarks,
 };
 use univariate_benchmarks::{
@@ -13,6 +14,6 @@ use univariate_benchmarks::{
 criterion_group!(
     name = polynomials;
     config = Criterion::default().sample_size(10).configure_from_args();
-    targets = dense_multilinear_polynomial_benchmarks, sparse_multilinear_polynomial_benchmarks, dense_univariate_polynomial_benchmarks, sparse_univariate_polynomial_benchmarks
+    targets = dense_multilinear_polynomial_benchmarks, sparse_multilinear_polynomial_benchmarks, dense_univariate_polynomial_benchmarks, sparse_univariate_polynomial_benchmarks, evaluation_form_multilinear_polynomial_benchmarks
 );
 criterion_main!(polynomials);

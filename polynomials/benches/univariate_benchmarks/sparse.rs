@@ -62,7 +62,7 @@ pub fn sparse_univariate_polynomial_benchmarks(c: &mut Criterion) {
                 xs.push(Fq::rand(&mut rng));
                 ys.push(Fq::rand(&mut rng));
             }
-            black_box(SparseUnivariatePolynomial::interpolate(xs, ys))
+            black_box(SparseUnivariatePolynomial::interpolate(&xs, &ys))
         });
     });
 }

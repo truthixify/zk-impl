@@ -18,7 +18,7 @@ pub fn shares<F: PrimeField>(
         xs.splice(0..0, [password]);
         ys.splice(0..0, [secret]);
 
-        let poly = DenseUnivariatePolynomial::interpolate(xs, ys);
+        let poly = DenseUnivariatePolynomial::interpolate(&xs, &ys);
 
         if poly.degree() == (threshold - 1) as usize {
             for i in 1..num_shares {
@@ -40,7 +40,7 @@ pub fn recover_secret<F: PrimeField>(shares: Vec<(F, F)>, password: F) -> F {
         ys.push(share.1);
     }
 
-    let poly = DenseUnivariatePolynomial::interpolate(xs, ys);
+    let poly = DenseUnivariatePolynomial::interpolate(&xs, &ys);
     let secret = poly.evaluate(F::from(password));
 
     secret
