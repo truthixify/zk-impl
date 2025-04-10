@@ -1,0 +1,11 @@
+[package]
+name = "fiat-shamir-transcript"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ark-ff = "0.5.0"
+sha3 = "0.10.8"
+
+[dev-dependencies]
+ark-bls12-381 = "0.5.0"

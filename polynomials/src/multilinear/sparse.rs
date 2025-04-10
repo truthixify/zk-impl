@@ -40,11 +40,13 @@ impl<F: PrimeField> SparseMultilinearPolynomial<F> {
             .iter()
             .map(|(coeff, monomial_index)| {
                 let mut result = F::ONE;
+
                 for i in 0..self.n_vars {
                     if monomial_index & (1 << i) != 0 {
                         result = result.mul(point[i]);
                     }
                 }
+                
                 coeff.mul(result)
             })
             .sum()
