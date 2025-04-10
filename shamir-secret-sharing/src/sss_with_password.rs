@@ -41,9 +41,8 @@ pub fn recover_secret<F: PrimeField>(shares: Vec<(F, F)>, password: F) -> F {
     }
 
     let poly = DenseUnivariatePolynomial::interpolate(&xs, &ys);
-    let secret = poly.evaluate(F::from(password));
 
-    secret
+    poly.evaluate(password)
 }
 
 #[cfg(test)]

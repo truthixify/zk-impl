@@ -1,19 +1,19 @@
 use ark_ff::{BigInteger, PrimeField};
 use sha3::Digest;
-use sha3::digest::FixedOutputReset;
+// use sha3::digest::FixedOutputReset;
 use std::marker::PhantomData;
 
 #[derive(Debug)]
 pub struct Transcript<F, H> {
     hasher: H,
-    field_elements: PhantomData<F>,
+    _phantom: PhantomData<F>,
 }
 
-impl<F: PrimeField, H: Clone + Digest + FixedOutputReset> Transcript<F, H> {
+impl<F: PrimeField, H: Clone + Digest /*+ FixedOutputReset */> Transcript<F, H> {
     pub fn new() -> Self {
         Transcript {
             hasher: H::new(),
-            field_elements: PhantomData,
+            _phantom: PhantomData,
         }
     }
 
@@ -26,30 +26,44 @@ impl<F: PrimeField, H: Clone + Digest + FixedOutputReset> Transcript<F, H> {
     }
 
     pub fn sample_field_element(&mut self) -> F {
-        let hash = &self.hasher.finalize_reset();
+        // to finalize and reset
+        // let hash = &self.hasher.finalize_reset();
+
+        // to finalize and not reset
+        let hash = &self.hasher.clone().finalize();
 
         Digest::update(&mut self.hasher, hash);
 
         F::from_be_bytes_mod_order(hash)
     }
 
-    pub fn sample_n_elements(&mut self, n: usize) -> Vec<F> {
+    pub fn sample_n_field_elements(&mut self, n: usize) -> Vec<F> {
         (0..n).map(|_| self.sample_field_element()).collect()
+    }
+}
+
+impl<F: PrimeField, H: Clone + Digest /*+ FixedOutputReset */> Default for Transcript<F, H> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use ark_bls12_381::Fq; use ark_ff::ToConstraintField;
-    // Example field type
-    use sha3::Keccak256;
+    use ark_bls12_381::Fq;
+    use ark_ff::ToConstraintField;
+    use sha3::{Keccak256, Sha3_256};
+
+    fn fq(x: u64) -> Fq {
+        Fq::from(x)
+    }
 
     #[test]
     fn test_basic_challenge_generation() {
         let mut transcript = Transcript::<Fq, Keccak256>::new();
 
-        let data = b"test_data";
+        let data = b"bozobano";
 
         transcript.append(data);
 
@@ -69,8 +83,8 @@ mod tests {
     fn test_append_multiple_field_elements() {
         let mut transcript = Transcript::<Fq, Keccak256>::new();
 
-        let field_element1: Fq = Fq::from(12345u64);
-        let field_element2: Fq = Fq::from(67890u64);
+        let field_element1 = fq(12345u64);
+        let field_element2 = fq(67890u64);
 
         transcript.append_field_element(&field_element1);
         transcript.append_field_element(&field_element2);
@@ -97,7 +111,7 @@ mod tests {
         let mut transcript1 = Transcript::<Fq, Keccak256>::new();
         let mut transcript2 = Transcript::<Fq, Keccak256>::new();
 
-        let data = b"test_data";
+        let data = b"bozobano";
 
         transcript1.append(data);
         transcript2.append(data);
@@ -135,7 +149,7 @@ mod tests {
     fn test_field_element_encoding() {
         let mut transcript = Transcript::<Fq, Keccak256>::new();
 
-        let field_element: Fq = Fq::from(12345u64);
+        let field_element = fq(12345u64);
 
         transcript.append_field_element(&field_element);
 
@@ -155,16 +169,23 @@ mod tests {
     #[test]
     fn test_sample_n_elements() {
         let mut transcript: Transcript<Fq, Keccak256> = Transcript::new();
-        
+
         // Test sampling 5 elements
-        let elements = transcript.sample_n_elements(5);
+        let elements = transcript.sample_n_field_elements(5);
 
         // Ensure the returned vector has the correct length
-        assert_eq!(elements.len(), 5, "The number of sampled elements should be 5");
+        assert_eq!(
+            elements.len(),
+            5,
+            "The number of sampled elements should be 5"
+        );
 
         // Ensure all elements are valid field elements
         for element in &elements {
-            assert!(element.to_field_elements().is_some(), "The element should be a valid field element");
+            assert!(
+                element.to_field_elements().is_some(),
+                "The element should be a valid field element"
+            );
         }
     }
 
@@ -174,12 +195,29 @@ mod tests {
         let mut transcript: Transcript<Fq, Keccak256> = Transcript::new();
 
         // Sample 100 elements
-        let elements = transcript.sample_n_elements(100);
+        let elements = transcript.sample_n_field_elements(100);
 
         // Check that the sampled elements are unique
         let mut seen = std::collections::HashSet::new();
         for element in elements {
             assert!(seen.insert(element), "Found duplicate element");
         }
+    }
+
+    #[test]
+    fn test_with_a_different_hash_function() {
+        let mut transcript = Transcript::<Fq, Sha3_256>::new();
+
+        let data = b"bozobano";
+
+        transcript.append(data);
+
+        let challenge = transcript.sample_field_element();
+
+        // Generate expected challenge with Keccak256 manually
+        let expected_challenge_bytes = Sha3_256::digest(data);
+        let expected_challenge = Fq::from_be_bytes_mod_order(&expected_challenge_bytes);
+
+        assert_eq!(challenge, expected_challenge);
     }
 }

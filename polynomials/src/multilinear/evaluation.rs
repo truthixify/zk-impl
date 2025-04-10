@@ -32,14 +32,8 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
             "Number of points must match number of variables"
         );
 
-        self.partial_evaluate(
-            &points
-                .iter()
-                .enumerate()
-                .map(|(_, &x)| (x, 0))
-                .collect::<Vec<_>>(),
-        )
-        .evals[0]
+        self.partial_evaluate(&points.iter().map(|&x| (x, 0)).collect::<Vec<_>>())
+            .evals[0]
     }
 
     pub fn partial_evaluate(&self, points: &[(F, usize)]) -> Self {

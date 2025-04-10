@@ -1,4 +1,5 @@
 use ark_ff::PrimeField;
+use std::cmp::Ordering;
 use std::iter::{Product, Sum};
 use std::ops::{Add, Mul};
 
@@ -55,7 +56,7 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
 
         xs.iter()
             .zip(ys.iter())
-            .map(|(x, y)| Self::basis(*x, &xs).scalar_mul(*y))
+            .map(|(x, y)| Self::basis(*x, xs).scalar_mul(*y))
             .sum()
     }
 }
@@ -104,16 +105,20 @@ impl<F: PrimeField> Add for &SparseUnivariatePolynomial<F> {
             let (coeff1, exp1) = self.terms[i];
             let (coeff2, exp2) = rhs.terms[j];
 
-            if exp1 == exp2 {
-                summed_terms.push((coeff1.add(coeff2), exp1));
-                i += 1;
-                j += 1;
-            } else if exp1 < exp2 {
-                summed_terms.push((coeff1, exp1));
-                i += 1;
-            } else {
-                summed_terms.push((coeff2, exp2));
-                j += 1;
+            match exp1.cmp(&exp2) {
+                Ordering::Equal => {
+                    summed_terms.push((coeff1.add(coeff2), exp1));
+                    i += 1;
+                    j += 1;
+                }
+                Ordering::Less => {
+                    summed_terms.push((coeff1, exp1));
+                    i += 1;
+                }
+                Ordering::Greater => {
+                    summed_terms.push((coeff2, exp2));
+                    j += 1;
+                }
             }
         }
 

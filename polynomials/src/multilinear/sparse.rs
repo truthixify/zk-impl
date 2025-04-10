@@ -1,5 +1,8 @@
 use ark_ff::PrimeField;
-use std::ops::{Add, Mul};
+use std::{
+    cmp::Ordering,
+    ops::{Add, Mul},
+};
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SparseMultilinearPolynomial<F: PrimeField> {
@@ -46,7 +49,7 @@ impl<F: PrimeField> SparseMultilinearPolynomial<F> {
                         result = result.mul(point[i]);
                     }
                 }
-                
+
                 coeff.mul(result)
             })
             .sum()
@@ -138,16 +141,20 @@ impl<F: PrimeField> Add for &SparseMultilinearPolynomial<F> {
             let (coeff1, monomial_index1) = self.terms[i];
             let (coeff2, monomial_index2) = rhs.terms[j];
 
-            if monomial_index1 == monomial_index2 {
-                summed_terms.push((coeff1.add(coeff2), monomial_index1));
-                i += 1;
-                j += 1;
-            } else if monomial_index1 < monomial_index2 {
-                summed_terms.push((coeff1, monomial_index1));
-                i += 1;
-            } else {
-                summed_terms.push((coeff2, monomial_index2));
-                j += 1;
+            match monomial_index1.cmp(&monomial_index2) {
+                Ordering::Equal => {
+                    summed_terms.push((coeff1.add(coeff2), monomial_index1));
+                    i += 1;
+                    j += 1;
+                }
+                Ordering::Less => {
+                    summed_terms.push((coeff1, monomial_index1));
+                    i += 1;
+                }
+                Ordering::Greater => {
+                    summed_terms.push((coeff2, monomial_index2));
+                    j += 1;
+                }
             }
         }
 

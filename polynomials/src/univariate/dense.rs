@@ -75,7 +75,7 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
 
         xs.iter()
             .zip(ys.iter())
-            .map(|(x, y)| Self::basis(*x, &xs).scalar_mul(*y))
+            .map(|(x, y)| Self::basis(*x, xs).scalar_mul(*y))
             .sum()
     }
 }
