@@ -183,8 +183,12 @@ mod tests {
     use super::*;
     use ark_bls12_381::Fq;
 
+    fn fq(x: i64) -> Fq {
+        Fq::from(x)
+    }
+
     fn test_poly() -> SparseUnivariatePolynomial<Fq> {
-        let coeffs = vec![(Fq::from(1), 0), (Fq::from(2), 1), (Fq::from(3), 2)];
+        let coeffs = vec![(fq(1), 0), (fq(2), 1), (fq(3), 2)];
 
         SparseUnivariatePolynomial::new(coeffs)
     }
@@ -201,38 +205,38 @@ mod tests {
     fn test_evaluation() {
         let poly = test_poly();
 
-        assert_eq!(poly.evaluate(Fq::from(2)), Fq::from(17));
+        assert_eq!(poly.evaluate(fq(2)), fq(17));
     }
 
     #[test]
     fn test_scalar_mul() {
         let poly = test_poly();
         let expected_result = SparseUnivariatePolynomial::new(vec![
-            (Fq::from(2), 0),
-            (Fq::from(4), 1),
-            (Fq::from(6), 2),
+            (fq(2), 0),
+            (fq(4), 1),
+            (fq(6), 2),
         ]);
 
-        assert_eq!(poly.scalar_mul(Fq::from(2)), expected_result);
+        assert_eq!(poly.scalar_mul(fq(2)), expected_result);
     }
 
     #[test]
     fn test_addition() {
         let expected_result = SparseUnivariatePolynomial::new(vec![
-            (Fq::from(4), 0),
-            (Fq::from(6), 1),
-            (Fq::from(3), 2),
-            (Fq::from(5), 11),
-            (Fq::from(-1), 120),
+            (fq(4), 0),
+            (fq(6), 1),
+            (fq(3), 2),
+            (fq(5), 11),
+            (fq(-1), 120),
         ]);
         // f(x) = 1 + 2x + 3x^2
         let poly_1 = test_poly();
         // f(x) = 3 + 4x + 5x^11
         let poly_2 = SparseUnivariatePolynomial::new(vec![
-            (Fq::from(3), 0),
-            (Fq::from(4), 1),
-            (Fq::from(5), 11),
-            (Fq::from(-1), 120),
+            (fq(3), 0),
+            (fq(4), 1),
+            (fq(5), 11),
+            (fq(-1), 120),
         ]);
 
         assert_eq!(&poly_1 + &poly_2, expected_result);
@@ -241,14 +245,14 @@ mod tests {
     #[test]
     fn test_multiplication() {
         // f(x) = 5 + 2x^2
-        let poly_1 = SparseUnivariatePolynomial::new(vec![(Fq::from(5), 0), (Fq::from(2), 2)]);
+        let poly_1 = SparseUnivariatePolynomial::new(vec![(fq(5), 0), (fq(2), 2)]);
         // f(x) = 6 + 2x
-        let poly_2 = SparseUnivariatePolynomial::new(vec![(Fq::from(6), 0), (Fq::from(2), 1)]);
+        let poly_2 = SparseUnivariatePolynomial::new(vec![(fq(6), 0), (fq(2), 1)]);
         let expected_result = SparseUnivariatePolynomial::new(vec![
-            (Fq::from(30), 0),
-            (Fq::from(10), 1),
-            (Fq::from(12), 2),
-            (Fq::from(4), 3),
+            (fq(30), 0),
+            (fq(10), 1),
+            (fq(12), 2),
+            (fq(4), 3),
         ]);
 
         assert_eq!(&poly_1 * &poly_2, expected_result);
@@ -260,10 +264,10 @@ mod tests {
         // [(2, 4), (4, 8)]
 
         let interpolated_poly = SparseUnivariatePolynomial::interpolate(
-            &[Fq::from(2), Fq::from(4)],
-            &[Fq::from(4), Fq::from(8)],
+            &[fq(2), fq(4)],
+            &[fq(4), fq(8)],
         );
-        let expected_result = SparseUnivariatePolynomial::new(vec![(Fq::from(2), 1)]);
+        let expected_result = SparseUnivariatePolynomial::new(vec![(fq(2), 1)]);
 
         assert_eq!(interpolated_poly, expected_result);
     }

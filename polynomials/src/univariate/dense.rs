@@ -149,8 +149,12 @@ mod tests {
     use super::*;
     use ark_bls12_381::Fq;
 
+    fn fq(x: u64) -> Fq {
+        Fq::from(x)
+    }
+
     fn test_poly() -> DenseUnivariatePolynomial<Fq> {
-        let coeffs = vec![Fq::from(1), Fq::from(2), Fq::from(3)];
+        let coeffs = vec![fq(1), fq(2), fq(3)];
 
         DenseUnivariatePolynomial::new(coeffs)
     }
@@ -166,48 +170,48 @@ mod tests {
     fn test_evaluation() {
         let poly = test_poly();
 
-        assert_eq!(poly.evaluate(Fq::from(2)), Fq::from(17));
+        assert_eq!(poly.evaluate(fq(2)), fq(17));
     }
 
     #[test]
     fn test_scalar_mul() {
         let poly = test_poly();
         let expected_result =
-            DenseUnivariatePolynomial::new(vec![Fq::from(2), Fq::from(4), Fq::from(6)]);
+            DenseUnivariatePolynomial::new(vec![fq(2), fq(4), fq(6)]);
 
-        assert_eq!(poly.scalar_mul(Fq::from(2)), expected_result);
+        assert_eq!(poly.scalar_mul(fq(2)), expected_result);
     }
 
     #[test]
     fn test_addition() {
         let poly_1 = test_poly();
         let poly_2 = DenseUnivariatePolynomial::new(vec![
-            Fq::from(3),
-            Fq::from(4),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(5),
+            fq(3),
+            fq(4),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(5),
         ]);
         let expected_result = DenseUnivariatePolynomial::new(vec![
-            Fq::from(4),
-            Fq::from(6),
-            Fq::from(3),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(0),
-            Fq::from(5),
+            fq(4),
+            fq(6),
+            fq(3),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(5),
         ]);
 
         assert_eq!(&poly_1 + &poly_2, expected_result);
@@ -216,14 +220,14 @@ mod tests {
     #[test]
     fn test_multiplication() {
         // f(x) = 5 + 2x^2
-        let poly_1 = DenseUnivariatePolynomial::new(vec![Fq::from(5), Fq::from(0), Fq::from(2)]);
+        let poly_1 = DenseUnivariatePolynomial::new(vec![fq(5), fq(0), fq(2)]);
         // f(x) = 6 + 2x
-        let poly_2 = DenseUnivariatePolynomial::new(vec![Fq::from(6), Fq::from(2)]);
+        let poly_2 = DenseUnivariatePolynomial::new(vec![fq(6), fq(2)]);
         let expected_result = DenseUnivariatePolynomial::new(vec![
-            Fq::from(30),
-            Fq::from(10),
-            Fq::from(12),
-            Fq::from(4),
+            fq(30),
+            fq(10),
+            fq(12),
+            fq(4),
         ]);
 
         assert_eq!(&poly_1 * &poly_2, expected_result);
@@ -235,10 +239,10 @@ mod tests {
         // [(2, 4), (4, 8)]
 
         let interpolated_poly = DenseUnivariatePolynomial::interpolate(
-            &[Fq::from(2), Fq::from(4)],
-            &[Fq::from(4), Fq::from(8)],
+            &[fq(2), fq(4)],
+            &[fq(4), fq(8)],
         );
-        let expected_result = DenseUnivariatePolynomial::new(vec![Fq::from(0), Fq::from(2)]);
+        let expected_result = DenseUnivariatePolynomial::new(vec![fq(0), fq(2)]);
 
         assert_eq!(interpolated_poly, expected_result);
     }

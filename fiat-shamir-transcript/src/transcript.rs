@@ -1,6 +1,5 @@
 use ark_ff::{BigInteger, PrimeField};
 use sha3::Digest;
-// use sha3::digest::FixedOutputReset;
 use std::marker::PhantomData;
 
 #[derive(Debug)]
@@ -9,7 +8,7 @@ pub struct Transcript<F, H> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: PrimeField, H: Clone + Digest /*+ FixedOutputReset */> Transcript<F, H> {
+impl<F: PrimeField, H: Clone + Digest> Transcript<F, H> {
     pub fn new() -> Self {
         Transcript {
             hasher: H::new(),
@@ -18,7 +17,7 @@ impl<F: PrimeField, H: Clone + Digest /*+ FixedOutputReset */> Transcript<F, H> 
     }
 
     pub fn append(&mut self, data: &[u8]) {
-        Digest::update(&mut self.hasher, data);
+        self.hasher.update(data);
     }
 
     pub fn append_field_element(&mut self, element: &F) {
@@ -26,13 +25,9 @@ impl<F: PrimeField, H: Clone + Digest /*+ FixedOutputReset */> Transcript<F, H> 
     }
 
     pub fn sample_field_element(&mut self) -> F {
-        // to finalize and reset
-        // let hash = &self.hasher.finalize_reset();
-
-        // to finalize and not reset
         let hash = &self.hasher.clone().finalize();
 
-        Digest::update(&mut self.hasher, hash);
+        self.hasher.update(hash);
 
         F::from_be_bytes_mod_order(hash)
     }
@@ -83,8 +78,8 @@ mod tests {
     fn test_append_multiple_field_elements() {
         let mut transcript = Transcript::<Fq, Keccak256>::new();
 
-        let field_element1 = fq(12345u64);
-        let field_element2 = fq(67890u64);
+        let field_element1 = fq(12345);
+        let field_element2 = fq(6789);
 
         transcript.append_field_element(&field_element1);
         transcript.append_field_element(&field_element2);
