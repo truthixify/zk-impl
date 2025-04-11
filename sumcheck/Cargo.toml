@@ -16,6 +16,6 @@ criterion = { version = "0.5", features = ["html_reports"] }
 field-tracker = { git = "https://github.com/sublinearlabs/field-tracker", branch = "main" }
 ark-bls12-381 = "0.5.0"
 
-# [[bench]]
-# name = "criterion"
-# harness = false
+[[bench]]
+name = "criterion"
+harness = false

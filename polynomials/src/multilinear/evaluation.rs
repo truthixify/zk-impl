@@ -86,7 +86,15 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
                     let y1 = chunk[i];
                     let y2 = chunk[i + stride];
                     // linear interpolation: (1 - x) * a + x * b = a + (b - a) * x
-                    new_evals.push(y1 + (y2 - y1) * value);
+                    let term = if value.is_zero() {
+                        y1
+                    } else if value.is_one() {
+                        y2
+                    } else {
+                        y1 + (y2 - y1) * value
+                    };
+
+                    new_evals.push(term);
                 }
             }
 

@@ -136,4 +136,62 @@ mod tests {
         end_tscope!();
         print_summary!();
     }
+
+    #[test]
+    fn test_sumcheck_valid_proof() {
+        let polynomial: MultilinearPolynomial<Fq> = MultilinearPolynomial::new(vec![
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(3),
+            fq(0),
+            fq(0),
+            fq(2),
+            fq(5),
+        ]);
+        let proof = prove(&polynomial, fq(10));
+        assert!(verify(&polynomial, &proof));
+    }
+
+    #[test]
+    fn test_sumcheck_invalid_sum() {
+        let polynomial: MultilinearPolynomial<Fq> = MultilinearPolynomial::new(vec![
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(3),
+            fq(0),
+            fq(0),
+            fq(2),
+            fq(5),
+        ]);
+        let proof = prove(&polynomial, fq(9)); // incorrect claimed sum
+        assert!(!verify(&polynomial, &proof));
+    }
+
+    #[test]
+    fn test_sumcheck_invalid_polynomial() {
+        let poly_correct = MultilinearPolynomial::new(vec![
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(3),
+            fq(0),
+            fq(0),
+            fq(2),
+            fq(5),
+        ]);
+        let poly_wrong = MultilinearPolynomial::new(vec![
+            fq(0),
+            fq(0),
+            fq(0),
+            fq(3),
+            fq(0),
+            fq(0),
+            fq(2),
+            fq(4),
+        ]);
+        let proof = prove(&poly_correct, fq(10));
+        assert!(!verify(&poly_wrong, &proof));
+    }
 }
