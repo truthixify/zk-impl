@@ -1,4 +1,4 @@
-use ark_ff::PrimeField;
+use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MultilinearPolynomial<F: PrimeField> {
@@ -19,6 +19,10 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
         self.evals.len().ilog2() as usize
     }
 
+    pub fn evals_slice(&self) -> &[F] {
+        &self.evals
+    }
+
     pub fn scalar_mul(&self, scalar: F) -> Self {
         Self {
             evals: self.evals.iter().map(|&x| x * scalar).collect(),
@@ -32,11 +36,15 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
             "Number of points must match number of variables"
         );
 
-        self.partial_evaluate(&points.iter().map(|&x| (x, 0)).collect::<Vec<_>>())
+        self.partial_evaluate_many_vars(&points.iter().map(|&x| (x, 0)).collect::<Vec<_>>())
             .evals[0]
     }
 
-    pub fn partial_evaluate(&self, points: &[(F, usize)]) -> Self {
+    pub fn partial_evaluate(&self, point: F, var_index: usize) -> Self {
+        self.partial_evaluate_many_vars(&[(point, var_index)])
+    }
+
+    pub fn partial_evaluate_many_vars(&self, points: &[(F, usize)]) -> Self {
         assert!(
             points.len() <= self.n_vars(),
             "Number of points must be less than or equal to number of variables"
@@ -71,6 +79,8 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
             let chunk_size = stride << 1; // 2 chunks of size stride (stride << 1 = stride * 2)
             let mut new_evals = Vec::with_capacity(evals.len() / 2);
 
+            // impl 1
+            // this was faster in benchmarks even though it had one more loop
             for chunk in evals.chunks(chunk_size) {
                 for i in 0..stride {
                     let y1 = chunk[i];
@@ -79,6 +89,23 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
                     new_evals.push(y1 + (y2 - y1) * value);
                 }
             }
+
+            // impl 2
+            // let mut i = 0;
+
+            // while i < evals.len() {
+            //     let y1 = evals[i];
+            //     let y2 = evals[i + stride];
+
+            //     // linear interpolation: (1 - x) * a + x * b = a + (b - a) * x
+            //     new_evals.push(y1 + (y2 - y1) * value);
+
+            //     i += 1;
+
+            //     if i % chunk_size == stride {
+            //         i += stride;
+            //     }
+            // }
 
             evals = new_evals;
             current_n_vars -= 1;
@@ -120,6 +147,13 @@ impl<F: PrimeField> MultilinearPolynomial<F> {
 
         Self { evals }
     }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.evals
+            .iter()
+            .flat_map(|el| el.into_bigint().to_bytes_be())
+            .collect()
+    }
 }
 
 #[cfg(test)]
@@ -159,32 +193,32 @@ mod tests {
         // Fix c = 0 → reduces to polynomial over (a, b)
         // Retains values at c=0: indices 0, 2, 4, 6
         assert_eq!(
-            poly_abc.partial_evaluate(&[(fq(0), 2)]),
+            poly_abc.partial_evaluate(fq(0), 2),
             MultilinearPolynomial::new(vec![fq(1), fq(5), fq(2), fq(6)])
         );
 
         // Fix b = 1 → reduces to polynomial over (a, c)
         // Indices with b=1: (0,1,0)=2, (0,1,1)=3, (1,1,0)=6, (1,1,1)=7 → [5, 7, 6, 8]
         assert_eq!(
-            poly_abc.partial_evaluate(&[(fq(1), 1)]),
+            poly_abc.partial_evaluate(fq(1), 1),
             MultilinearPolynomial::new(vec![fq(5), fq(7), fq(6), fq(8)])
         );
 
         // Fix a = 1, c = 1 → indices: (1,0,1)=5, (1,1,1)=7 → [4, 8]
         assert_eq!(
-            poly_abc.partial_evaluate(&[(fq(1), 0), (fq(1), 2)]),
+            poly_abc.partial_evaluate_many_vars(&[(fq(1), 0), (fq(1), 2)]),
             MultilinearPolynomial::new(vec![fq(4), fq(8)])
         );
 
         // Fix a = 0, b = 0 → (0,0,0)=1, (0,0,1)=3
         assert_eq!(
-            poly_abc.partial_evaluate(&[(fq(0), 0), (fq(0), 1)]),
+            poly_abc.partial_evaluate_many_vars(&[(fq(0), 0), (fq(0), 1)]),
             MultilinearPolynomial::new(vec![fq(1), fq(3)])
         );
 
         // Fix a = 0, b = 1, c = 0 → single point: (0,1,0)=2 → value 5
         assert_eq!(
-            poly_abc.partial_evaluate(&[(fq(0), 0), (fq(1), 1), (fq(0), 2)]),
+            poly_abc.partial_evaluate_many_vars(&[(fq(0), 0), (fq(1), 1), (fq(0), 2)]),
             MultilinearPolynomial::new(vec![fq(5)])
         );
 
@@ -212,7 +246,7 @@ mod tests {
 
         // Fix d = 0 → keep every even index
         assert_eq!(
-            poly_abcd.partial_evaluate(&[(fq(0), 3)]),
+            poly_abcd.partial_evaluate(fq(0), 3),
             MultilinearPolynomial::new(vec![
                 fq(1),
                 fq(3),
@@ -227,19 +261,19 @@ mod tests {
 
         // Fix b = 1, c = 0 → pick (a,1,0,d): indices 4,5,12,13 → values [5,6,13,14]
         assert_eq!(
-            poly_abcd.partial_evaluate(&[(fq(1), 1), (fq(0), 2)]),
+            poly_abcd.partial_evaluate_many_vars(&[(fq(1), 1), (fq(0), 2)]),
             MultilinearPolynomial::new(vec![fq(5), fq(6), fq(13), fq(14)])
         );
 
         // Fix a = 0, b = 1, c = 1 → indices: (0,1,1,0)=6, (0,1,1,1)=7 → [7,8]
         assert_eq!(
-            poly_abcd.partial_evaluate(&[(fq(0), 0), (fq(1), 1), (fq(1), 2)]),
+            poly_abcd.partial_evaluate_many_vars(&[(fq(0), 0), (fq(1), 1), (fq(1), 2)]),
             MultilinearPolynomial::new(vec![fq(7), fq(8)])
         );
 
         // Fix all: a=1, b=0, c=1, d=0 → (1,0,1,0) = index 10 → value 11
         assert_eq!(
-            poly_abcd.partial_evaluate(&[(fq(1), 0), (fq(0), 1), (fq(1), 2), (fq(0), 3)]),
+            poly_abcd.partial_evaluate_many_vars(&[(fq(1), 0), (fq(0), 1), (fq(1), 2), (fq(0), 3)]),
             MultilinearPolynomial::new(vec![fq(11)])
         );
     }
@@ -290,8 +324,8 @@ mod tests {
         let full_eval = poly.evaluate(&[a, b, c]);
 
         // Step-by-step partial evaluation
-        let partial1 = poly.partial_evaluate(&[(a, 0)]);
-        let partial2 = partial1.partial_evaluate(&[(b, 0)]);
+        let partial1 = poly.partial_evaluate(a, 0);
+        let partial2 = partial1.partial_evaluate(b, 0);
         let final_eval = partial2.evaluate(&[c]);
 
         assert_eq!(full_eval, final_eval);
@@ -312,7 +346,7 @@ mod tests {
         for fixed_vars in 1..=num_vars {
             let fixed: Vec<(Fq, usize)> = (0..fixed_vars).map(|i| (assignment[i], i)).collect();
 
-            let partial = poly.partial_evaluate(&fixed);
+            let partial = poly.partial_evaluate_many_vars(&fixed);
             let remaining_assignment: Vec<Fq> = (0..num_vars)
                 .filter(|i| i >= &fixed_vars)
                 .map(|i| assignment[i])

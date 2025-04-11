@@ -38,14 +38,14 @@ pub fn evaluation_form_multilinear_polynomial_benchmarks(c: &mut Criterion) {
     group.bench_function("partial evaluation (fix 5 vars)", |b| {
         let fixed: Vec<(Fq, usize)> = (0..5).map(|i| (Fq::rand(&mut rng), i)).collect();
         b.iter(|| {
-            black_box(poly.partial_evaluate(&fixed));
+            black_box(poly.partial_evaluate_many_vars(&fixed));
         });
     });
 
     group.bench_function("partial evaluation (fix all vars)", |b| {
         let fixed: Vec<(Fq, usize)> = (0..num_vars).map(|i| (Fq::rand(&mut rng), i)).collect();
         b.iter(|| {
-            black_box(poly.partial_evaluate(&fixed));
+            black_box(poly.partial_evaluate_many_vars(&fixed));
         });
     });
 

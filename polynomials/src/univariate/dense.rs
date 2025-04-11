@@ -1,4 +1,4 @@
-use ark_ff::PrimeField;
+use ark_ff::{BigInteger, PrimeField};
 use std::iter::{Product, Sum};
 use std::ops::{Add, Mul};
 
@@ -43,16 +43,6 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
     }
 
     pub fn evaluate(&self, x: F) -> F {
-        // for loop method
-        // let mut eval = 0.0;
-        // let mut current_x = 1.0;
-
-        // for i in 0..self.coefficients.len() {
-        //     eval += self.coefficients[i] * current_x;
-        //     current_x *= x;
-        // }
-
-        // eval
         // c1 + c2*x + c3*x^2 = c1 + x*(c2 + c3*x)
         self.coefficients
             .iter()
@@ -60,23 +50,31 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
             .cloned()
             .reduce(|acc, curr| acc * x + curr)
             .expect("Something went wrong when evaluationg polynomial")
-
-        // iterator method
-        // self.coefficients
-        //     .iter()
-        //     .enumerate()
-        //     .map(|(power, &coeff)| coeff * x.powf(power as f64))
-        //     .sum()
     }
 
     pub fn interpolate(xs: &[F], ys: &[F]) -> Self {
         assert_eq!(xs.len(), ys.len());
-        // dot product between the ys and the lagrange basis
 
+        // dot product between the ys and the lagrange basis
         xs.iter()
             .zip(ys.iter())
             .map(|(x, y)| Self::basis(*x, xs).scalar_mul(*y))
             .sum()
+    }
+
+    pub fn interpolate_y(ys: Vec<F>) -> Self {
+        let mut xs = vec![];
+        for i in 0..ys.len() {
+            xs.push(F::from(i as u64));
+        }
+        Self::interpolate(&xs, &ys)
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.coefficients
+            .iter()
+            .flat_map(|coeff| coeff.into_bigint().to_bytes_be())
+            .collect()
     }
 }
 
@@ -176,8 +174,7 @@ mod tests {
     #[test]
     fn test_scalar_mul() {
         let poly = test_poly();
-        let expected_result =
-            DenseUnivariatePolynomial::new(vec![fq(2), fq(4), fq(6)]);
+        let expected_result = DenseUnivariatePolynomial::new(vec![fq(2), fq(4), fq(6)]);
 
         assert_eq!(poly.scalar_mul(fq(2)), expected_result);
     }
@@ -223,12 +220,7 @@ mod tests {
         let poly_1 = DenseUnivariatePolynomial::new(vec![fq(5), fq(0), fq(2)]);
         // f(x) = 6 + 2x
         let poly_2 = DenseUnivariatePolynomial::new(vec![fq(6), fq(2)]);
-        let expected_result = DenseUnivariatePolynomial::new(vec![
-            fq(30),
-            fq(10),
-            fq(12),
-            fq(4),
-        ]);
+        let expected_result = DenseUnivariatePolynomial::new(vec![fq(30), fq(10), fq(12), fq(4)]);
 
         assert_eq!(&poly_1 * &poly_2, expected_result);
     }
@@ -238,10 +230,8 @@ mod tests {
         // f(x) = 2x
         // [(2, 4), (4, 8)]
 
-        let interpolated_poly = DenseUnivariatePolynomial::interpolate(
-            &[fq(2), fq(4)],
-            &[fq(4), fq(8)],
-        );
+        let interpolated_poly =
+            DenseUnivariatePolynomial::interpolate(&[fq(2), fq(4)], &[fq(4), fq(8)]);
         let expected_result = DenseUnivariatePolynomial::new(vec![fq(0), fq(2)]);
 
         assert_eq!(interpolated_poly, expected_result);

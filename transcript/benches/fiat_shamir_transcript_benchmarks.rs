@@ -1,8 +1,8 @@
 use ark_bls12_381::Fq;
 use ark_ff::UniformRand;
 use criterion::{Criterion, black_box};
-use fiat_shamir_transcript::transcript::Transcript;
 use sha3::Keccak256;
+use transcript::Transcript;
 
 pub fn fiat_shamir_transcript_benchmarks(c: &mut Criterion) {
     let mut rng = rand::thread_rng();

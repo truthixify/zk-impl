@@ -211,11 +211,8 @@ mod tests {
     #[test]
     fn test_scalar_mul() {
         let poly = test_poly();
-        let expected_result = SparseUnivariatePolynomial::new(vec![
-            (fq(2), 0),
-            (fq(4), 1),
-            (fq(6), 2),
-        ]);
+        let expected_result =
+            SparseUnivariatePolynomial::new(vec![(fq(2), 0), (fq(4), 1), (fq(6), 2)]);
 
         assert_eq!(poly.scalar_mul(fq(2)), expected_result);
     }
@@ -263,10 +260,8 @@ mod tests {
         // f(x) = 2x
         // [(2, 4), (4, 8)]
 
-        let interpolated_poly = SparseUnivariatePolynomial::interpolate(
-            &[fq(2), fq(4)],
-            &[fq(4), fq(8)],
-        );
+        let interpolated_poly =
+            SparseUnivariatePolynomial::interpolate(&[fq(2), fq(4)], &[fq(4), fq(8)]);
         let expected_result = SparseUnivariatePolynomial::new(vec![(fq(2), 1)]);
 
         assert_eq!(interpolated_poly, expected_result);
