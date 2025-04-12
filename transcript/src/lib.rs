@@ -1,5 +1,5 @@
 use ark_ff::{BigInteger, PrimeField};
-use sha3::Digest;
+use sha3::{Digest, digest::FixedOutputReset};
 use std::marker::PhantomData;
 
 #[derive(Debug)]
@@ -8,7 +8,7 @@ pub struct Transcript<F, H> {
     _phantom: PhantomData<F>,
 }
 
-impl<F: PrimeField, H: Clone + Digest> Transcript<F, H> {
+impl<F: PrimeField, H: Clone + Digest + FixedOutputReset> Transcript<F, H> {
     pub fn new() -> Self {
         Transcript {
             hasher: H::new(),
@@ -17,7 +17,7 @@ impl<F: PrimeField, H: Clone + Digest> Transcript<F, H> {
     }
 
     pub fn append(&mut self, data: &[u8]) {
-        self.hasher.update(data);
+        Digest::update(&mut self.hasher, data);
     }
 
     pub fn append_field_element(&mut self, element: &F) {
@@ -25,21 +25,15 @@ impl<F: PrimeField, H: Clone + Digest> Transcript<F, H> {
     }
 
     pub fn sample_field_element(&mut self) -> F {
-        let hash = &self.hasher.clone().finalize();
+        let hash = &self.hasher.finalize_reset();
 
-        self.hasher.update(hash);
+        Digest::update(&mut self.hasher, hash);
 
         F::from_be_bytes_mod_order(hash)
     }
 
     pub fn sample_n_field_elements(&mut self, n: usize) -> Vec<F> {
         (0..n).map(|_| self.sample_field_element()).collect()
-    }
-}
-
-impl<F: PrimeField, H: Clone + Digest /*+ FixedOutputReset */> Default for Transcript<F, H> {
-    fn default() -> Self {
-        Self::new()
     }
 }
 

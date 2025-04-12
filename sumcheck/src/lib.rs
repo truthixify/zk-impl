@@ -26,8 +26,8 @@ pub fn prove<F: PrimeField>(
     let mut round_polynomials = vec![];
 
     let mut transcript: Transcript<F, Keccak256> = Transcript::new();
-    transcript.append(&polynomial.to_bytes());
     transcript.append_field_element(&claimed_sum);
+    transcript.append(&polynomial.to_bytes());
 
     let mut polynomial = polynomial.clone();
 
@@ -56,14 +56,13 @@ pub fn verify<F: PrimeField>(
     polynomial: &MultilinearPolynomial<F>,
     proof: &SumcheckProof<F>,
 ) -> bool {
-    // println!("{:?}", proof);
     if proof.round_polynomials.len() != polynomial.n_vars() {
         return false;
     }
 
     let mut transcript: Transcript<F, Keccak256> = Transcript::new();
-    transcript.append(&polynomial.to_bytes());
     transcript.append_field_element(&proof.claimed_sum);
+    transcript.append(&polynomial.to_bytes());
 
     let mut claimed_sum = proof.claimed_sum;
     let mut challenges = vec![];
