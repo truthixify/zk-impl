@@ -178,7 +178,6 @@ mod tests {
         }
     }
 
-    // Optional: Test that elements are unique (if that's important)
     #[test]
     fn test_sample_n_elements_unique() {
         let mut transcript: Transcript<Fq, Keccak256> = Transcript::new();
