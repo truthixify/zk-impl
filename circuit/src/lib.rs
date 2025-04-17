@@ -1,13 +1,14 @@
-use std::marker::PhantomData;
-
 use ark_ff::PrimeField;
 use polynomials::multilinear::MultilinearPolynomial;
+use std::marker::PhantomData;
 
+#[derive(Debug)]
 pub enum Op {
     Add,
     Mul,
 }
 
+#[derive(Debug)]
 pub struct Gate {
     op: Op,
     output: usize,
@@ -25,7 +26,7 @@ impl Gate {
         }
     }
 
-    pub fn eval<F: PrimeField>(&self, layer_eval: Vec<F>) -> F {
+    pub fn eval_gate<F: PrimeField>(&self, layer_eval: &Vec<F>) -> F {
         let left_val = layer_eval[self.left_index];
         let right_val = layer_eval[self.right_index];
 
@@ -36,6 +37,7 @@ impl Gate {
     }
 }
 
+#[derive(Debug)]
 pub struct Layer<F: PrimeField> {
     gates: Vec<Gate>,
     _phantom: PhantomData<F>,
@@ -89,6 +91,7 @@ impl<F: PrimeField> Layer<F> {
     }
 }
 
+#[derive(Debug)]
 pub struct Circuit<F: PrimeField> {
     layers: Vec<Layer<F>>,
     layer_evals: Vec<Vec<F>>,
@@ -125,13 +128,7 @@ impl<F: PrimeField> Circuit<F> {
             let mut evals = vec![F::ZERO; max_layer_index + 1];
 
             for gate in layer.gates.iter() {
-                let left_val = current_layer_eval[gate.left_index];
-                let right_val = current_layer_eval[gate.right_index];
-
-                let current_gate_eval = match gate.op {
-                    Op::Add => left_val + right_val,
-                    Op::Mul => left_val * right_val,
-                };
+                let current_gate_eval = gate.eval_gate(&current_layer_eval);
 
                 evals[gate.output] += current_gate_eval;
             }
@@ -143,9 +140,7 @@ impl<F: PrimeField> Circuit<F> {
         resultant_evals.reverse();
         self.layer_evals = resultant_evals.clone();
 
-        let res = &resultant_evals[0];
-
-        res.to_vec()
+        (&resultant_evals[0]).to_vec()
     }
 
     pub fn add_i_and_mul_i_polynomials(
@@ -192,26 +187,48 @@ mod tests {
 
     #[test]
     fn test_circuit_evaluation() {
+        // Initial input values for the circuit (bottom layer)
+        // These will feed into the gates of the next layer up
         let input = vec![fq(1), fq(2), fq(3), fq(4)];
 
-        let layer2_gate1 = Gate::new(Op::Add, 0, 0, 1);
-        let layer_2gate2 = Gate::new(Op::Mul, 1, 2, 3);
-        let layer1_gate1 = Gate::new(Op::Add, 0, 0, 1);
+        // --- Layer 2 (Bottom Layer): 4 inputs -> 2 outputs ---
 
-        let layer1 = Layer::new(vec![layer1_gate1]);
+        // Gate 0: Add input[0] + input[1] = 1 + 2 = 3 → stored at index 0 of layer 2 output
+        let layer2_gate1 = Gate::new(Op::Add, 0, 0, 1);
+
+        // Gate 1: Mul input[2] * input[3] = 3 * 4 = 12 → stored at index 1 of layer 2 output
+        let layer_2gate2 = Gate::new(Op::Mul, 1, 2, 3);
+
+        // Layer 2 has two gates, producing [3, 12]
         let layer2 = Layer::new(vec![layer_2gate2, layer2_gate1]);
 
+        // --- Layer 1 (Middle Layer): 2 inputs → 1 output ---
+
+        // Gate: Add layer2_output[0] + layer2_output[1] = 3 + 12 = 15 → output of entire circuit
+        let layer1_gate1 = Gate::new(Op::Add, 0, 0, 1);
+
+        // Layer 1 has one gate, producing [15]
+        let layer1 = Layer::new(vec![layer1_gate1]);
+
+        // --- Construct the circuit ---
+        // The layers are in reverse order because the circuit runs from top to bottom (layer0 is final output)
         let mut circuit = Circuit::<Fq>::new(vec![layer1, layer2]);
 
+        // --- Run the circuit on the given input ---
+        // It evaluates layer2 first (from inputs), then layer1, and returns the final result
         let result = circuit.evaluate(input);
 
+        // --- Expected evaluations for each layer ---
         let expected_layers_evaluation = vec![
-            vec![fq(15)],
-            vec![fq(3), fq(12)],
-            vec![fq(1), fq(2), fq(3), fq(4)],
+            vec![fq(15)],                     // Final output from layer1
+            vec![fq(3), fq(12)],              // Output from layer2 (from input)
+            vec![fq(1), fq(2), fq(3), fq(4)], // Original input
         ];
 
+        // --- Check that intermediate values match expected layer evaluations ---
         assert_eq!(circuit.layer_evals, expected_layers_evaluation);
+
+        // --- Check that the final result is as expected ---
         assert_eq!(result[0], fq(15));
     }
 
@@ -222,8 +239,8 @@ mod tests {
         let add_gate = Gate::new(Op::Add, 0, 0, 1);
         let mul_gate = Gate::new(Op::Mul, 0, 0, 1);
 
-        assert_eq!(add_gate.eval(layer_eval.clone()), fq(5));
-        assert_eq!(mul_gate.eval(layer_eval), fq(6));
+        assert_eq!(add_gate.eval_gate(&layer_eval), fq(5));
+        assert_eq!(mul_gate.eval_gate(&layer_eval), fq(6));
     }
 
     #[test]

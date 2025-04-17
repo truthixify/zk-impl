@@ -2,56 +2,61 @@ use ark_bls12_381::Fq;
 use ark_ff::UniformRand;
 use circuit::{Circuit, Gate, Layer, Op};
 use criterion::{Criterion, black_box};
+use rand::Rng;
 
-fn build_sample_circuit() -> Circuit<Fq> {
-    let layer2 = Layer::new(vec![
-        Gate::new(Op::Add, 0, 0, 1),
-        Gate::new(Op::Mul, 1, 2, 3),
-        Gate::new(Op::Add, 2, 4, 5),
-        Gate::new(Op::Mul, 3, 6, 7),
-    ]);
+fn build_sample_circuit(num_of_layers: usize) -> Circuit<Fq> {
+    let input_size = 1 << num_of_layers;
+    let mut i = input_size;
+    let mut layers: Vec<Layer<Fq>> = vec![];
 
-    let layer1 = Layer::new(vec![
-        Gate::new(Op::Mul, 0, 0, 1),
-        Gate::new(Op::Add, 1, 2, 3),
-    ]);
+    while i > 1 {
+        let mut layer = vec![];
 
-    let layer0 = Layer::new(vec![Gate::new(Op::Add, 0, 0, 1)]);
+        for j in (0..i).step_by(2) {
+            let rng = rand::thread_rng().gen_range(0..1);
+            let gate: Gate;
 
-    Circuit::new(vec![layer0, layer1, layer2])
+            if rng == 1 {
+                gate = Gate::new(Op::Add, j / 2, j, j + 1);
+            } else {
+                gate = Gate::new(Op::Mul, j / 2, j, j + 1);
+            }
+
+            layer.push(gate);
+        }
+
+        layers.push(Layer::new(layer));
+
+        i = i / 2;
+    }
+
+    layers.reverse();
+    Circuit::new(layers)
 }
 
 pub fn circuit_benchmarks(c: &mut Criterion) {
     let mut rng = rand::thread_rng();
+    let num_of_layers = 10;
+    let input_size = 1 << (num_of_layers + 1);
     let mut group = c.benchmark_group("circuit");
-    let mut circuit = build_sample_circuit();
-    let mut input = Vec::with_capacity(20);
+    let mut circuit = build_sample_circuit(num_of_layers);
+    let mut input = Vec::with_capacity(input_size);
 
-    for _ in 0..20 {
+    for _ in 0..input_size {
         input.push(Fq::rand(&mut rng));
     }
 
-    group.bench_function("circuit_run_8_inputs", |b| {
+    group.bench_function(format!("circuit evaluate {} inputs", input_size), |b| {
         b.iter(|| {
             black_box(circuit.evaluate(input.clone()));
         });
     });
 
-    group.bench_function("mle generation layer 2", |b| {
-        b.iter(|| {
-            circuit.add_i_and_mul_i_polynomials(2);
+    for i in (0..num_of_layers).rev() {
+        group.bench_function(format!("mle generation layer {}", i + 1), |b| {
+            b.iter(|| {
+                black_box(circuit.add_i_and_mul_i_polynomials(i as usize));
+            });
         });
-    });
-
-    group.bench_function("mle generation layer 1", |b| {
-        b.iter(|| {
-            circuit.add_i_and_mul_i_polynomials(1);
-        });
-    });
-
-    group.bench_function("mle generation layer 0", |b| {
-        b.iter(|| {
-            circuit.add_i_and_mul_i_polynomials(0);
-        });
-    });
+    }
 }
