@@ -32,6 +32,10 @@ impl<F: PrimeField> DenseMultilinearPolynomial<F> {
         self.n_vars
     }
 
+    pub fn coefficients_slice(&self) -> &[F] {
+        &self.coefficients
+    }
+
     pub fn scalar_mul(&self, scalar: F) -> Self {
         let mut new_coeffs = Vec::with_capacity(self.coefficients.len());
 

@@ -51,15 +51,14 @@ pub fn evaluation_form_multilinear_polynomial_benchmarks(c: &mut Criterion) {
 
     group.bench_function("polynomial addition", |b| {
         b.iter(|| {
-            let _sum = MultilinearPolynomial {
-                evals: poly
-                    .evals
-                    .iter()
-                    .zip(&poly2.evals)
-                    .map(|(a, b)| *a + *b)
-                    .collect(),
-            };
-            black_box(_sum);
+            let evals = poly
+                .evals_slice()
+                .iter()
+                .zip(poly2.evals_slice())
+                .map(|(a, b)| *a + *b)
+                .collect();
+            let sum = MultilinearPolynomial::new(evals);
+            black_box(sum);
         });
     });
 

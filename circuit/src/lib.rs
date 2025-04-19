@@ -68,11 +68,11 @@ impl<F: PrimeField> Layer<F> {
     pub fn add_i_and_mul_i_polynomials(
         &self,
     ) -> (MultilinearPolynomial<F>, MultilinearPolynomial<F>) {
-        let num_boolean_hypercube_evaluations = 1 << self.num_layer_vars();
+        let num_boolean_hypercube_evals = 1 << self.num_layer_vars();
         let layer_index = self.layer_index();
 
-        let mut add_i_evals = vec![F::ZERO; num_boolean_hypercube_evaluations];
-        let mut mul_i_evals = vec![F::ZERO; num_boolean_hypercube_evaluations];
+        let mut add_i_evals = vec![F::ZERO; num_boolean_hypercube_evals];
+        let mut mul_i_evals = vec![F::ZERO; num_boolean_hypercube_evals];
 
         for gate in &self.gates {
             let postional_index =
@@ -261,8 +261,16 @@ mod tests {
 
         let (add_poly, mul_poly) = layer.add_i_and_mul_i_polynomials();
 
-        let add_count = add_poly.evals.iter().filter(|&&x| x == Fq::ONE).count();
-        let mul_count = mul_poly.evals.iter().filter(|&&x| x == Fq::ONE).count();
+        let add_count = add_poly
+            .evals_slice()
+            .iter()
+            .filter(|&&x| x == Fq::ONE)
+            .count();
+        let mul_count = mul_poly
+            .evals_slice()
+            .iter()
+            .filter(|&&x| x == Fq::ONE)
+            .count();
 
         assert_eq!(add_count, 1);
         assert_eq!(mul_count, 1);
@@ -280,7 +288,7 @@ mod tests {
 
         let poly = circuit.w_i_polynomial(1);
 
-        assert_eq!(poly.evals, input);
+        assert_eq!(poly.evals_slice(), input);
     }
 
     #[test]
@@ -416,17 +424,59 @@ mod tests {
 
         // MLEs for layer 2 (2 Add, 2 Mul)
         let (add_poly2, mul_poly2) = circuit.add_i_and_mul_i_polynomials(2);
-        assert_eq!(add_poly2.evals.iter().filter(|&&x| x == Fq::ONE).count(), 2);
-        assert_eq!(mul_poly2.evals.iter().filter(|&&x| x == Fq::ONE).count(), 2);
+        assert_eq!(
+            add_poly2
+                .evals_slice()
+                .iter()
+                .filter(|&&x| x == Fq::ONE)
+                .count(),
+            2
+        );
+        assert_eq!(
+            mul_poly2
+                .evals_slice()
+                .iter()
+                .filter(|&&x| x == Fq::ONE)
+                .count(),
+            2
+        );
 
         // MLEs for layer 1 (1 Add, 1 Mul)
         let (add_poly1, mul_poly1) = circuit.add_i_and_mul_i_polynomials(1);
-        assert_eq!(add_poly1.evals.iter().filter(|&&x| x == Fq::ONE).count(), 1);
-        assert_eq!(mul_poly1.evals.iter().filter(|&&x| x == Fq::ONE).count(), 1);
+        assert_eq!(
+            add_poly1
+                .evals_slice()
+                .iter()
+                .filter(|&&x| x == Fq::ONE)
+                .count(),
+            1
+        );
+        assert_eq!(
+            mul_poly1
+                .evals_slice()
+                .iter()
+                .filter(|&&x| x == Fq::ONE)
+                .count(),
+            1
+        );
 
         // MLE for layer 0 (1 Add)
         let (add_poly0, mul_poly0) = circuit.add_i_and_mul_i_polynomials(0);
-        assert_eq!(add_poly0.evals.iter().filter(|&&x| x == Fq::ONE).count(), 1);
-        assert_eq!(mul_poly0.evals.iter().filter(|&&x| x == Fq::ONE).count(), 0);
+        assert_eq!(
+            add_poly0
+                .evals_slice()
+                .iter()
+                .filter(|&&x| x == Fq::ONE)
+                .count(),
+            1
+        );
+        assert_eq!(
+            mul_poly0
+                .evals_slice()
+                .iter()
+                .filter(|&&x| x == Fq::ONE)
+                .count(),
+            0
+        );
     }
 }

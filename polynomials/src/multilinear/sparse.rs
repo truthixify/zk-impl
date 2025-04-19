@@ -6,8 +6,8 @@ use std::{
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct SparseMultilinearPolynomial<F: PrimeField> {
-    pub terms: Vec<(F, usize)>,
-    pub n_vars: usize,
+    terms: Vec<(F, usize)>,
+    n_vars: usize,
 }
 
 impl<F: PrimeField> SparseMultilinearPolynomial<F> {
@@ -17,6 +17,10 @@ impl<F: PrimeField> SparseMultilinearPolynomial<F> {
 
     pub fn n_vars(&self) -> usize {
         self.n_vars
+    }
+
+    pub fn terms_slice(&self) -> &[(F, usize)] {
+        &self.terms
     }
 
     pub fn scalar_mul(&self, scalar: F) -> Self {

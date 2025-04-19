@@ -6,7 +6,7 @@ use std::ops::{Add, Mul};
 #[derive(Debug, Clone, PartialEq)]
 pub struct DenseUnivariatePolynomial<F: PrimeField> {
     // 1 coefficient for each power of x
-    pub coefficients: Vec<F>,
+    coefficients: Vec<F>,
 }
 
 impl<F: PrimeField> DenseUnivariatePolynomial<F> {
@@ -16,6 +16,10 @@ impl<F: PrimeField> DenseUnivariatePolynomial<F> {
 
     pub fn degree(&self) -> usize {
         self.coefficients.len() - 1
+    }
+
+    pub fn coefficients_slice(&self) -> &[F] {
+        &self.coefficients
     }
 
     pub fn scalar_mul(&self, scalar: F) -> Self {

@@ -36,7 +36,7 @@ pub fn prove<F: PrimeField>(
 
         transcript.append(
             &round_polynomial
-                .coefficients
+                .coefficients_slice()
                 .iter()
                 .flat_map(|coeff| coeff.into_bigint().to_bytes_be())
                 .collect::<Vec<_>>(),

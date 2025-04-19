@@ -20,6 +20,10 @@ impl<F: PrimeField> SparseUnivariatePolynomial<F> {
         }
     }
 
+    pub fn terms_slice(&self) -> &[(F, usize)] {
+        &self.terms
+    }
+
     pub fn scalar_mul(&self, scalar: F) -> Self {
         let new_terms = self
             .terms

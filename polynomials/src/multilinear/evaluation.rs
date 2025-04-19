@@ -2,7 +2,7 @@ use ark_ff::{BigInteger, PrimeField};
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct MultilinearPolynomial<F: PrimeField> {
-    pub evals: Vec<F>,
+    evals: Vec<F>,
 }
 
 impl<F: PrimeField> MultilinearPolynomial<F> {
