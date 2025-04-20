@@ -29,7 +29,7 @@ impl<F: PrimeField> ProductPolynomial<F> {
             .product()
     }
 
-    pub fn partial_evaluate(&self, points: &[(F, usize)]) -> Self {
+    pub fn partial_evaluate_many_vars(&self, points: &[(F, usize)]) -> Self {
         let polynomials = self
             .polynomials
             .iter()
@@ -37,6 +37,28 @@ impl<F: PrimeField> ProductPolynomial<F> {
             .collect();
 
         Self::new(polynomials)
+    }
+
+    pub fn partial_evaluate(&self, point: F, var_index: usize) -> Self {
+        self.partial_evaluate_many_vars(&[(point, var_index)])
+    }
+
+    pub fn element_wise_mul(&self) -> MultilinearPolynomial<F> {
+        assert!(
+            self.polynomials.len() > 1,
+            "At least two polynomials are needed for multiplication"
+        );
+
+        let init = self.polynomials[0].clone();
+
+        self.polynomials
+            .iter()
+            .skip(1)
+            .fold(init, |acc, curr| acc.tensor_mul(curr))
+    }
+
+    pub fn reduce(&self) -> Vec<F> {
+        self.element_wise_mul().evals_slice().to_vec()
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -101,13 +123,37 @@ mod tests {
         let pp = ProductPolynomial::new(vec![p1.clone(), p2.clone()]);
 
         let partial_points = vec![(fq(1), 0)]; // Fix variable x₀ = 1
-        let evaluated_pp = pp.partial_evaluate(&partial_points);
+        let evaluated_pp = pp.partial_evaluate_many_vars(&partial_points);
 
         for (original, evaluated) in [p1, p2].iter().zip(evaluated_pp.polynomials.iter()) {
             let expected = original.partial_evaluate_many_vars(&partial_points);
 
             assert_eq!(expected, *evaluated);
         }
+    }
+
+    #[test]
+    fn test_element_wise_mul() {
+        let poly1 = create_multilinear_poly(vec![1, 2, 3, 4]);
+        let poly2 = create_multilinear_poly(vec![2, 3, 4, 5]);
+        let poly3 = create_multilinear_poly(vec![1, 1, 1, 1]);
+
+        let product = ProductPolynomial::new(vec![poly1.clone(), poly2.clone(), poly3.clone()]);
+        let result = product.element_wise_mul();
+
+        // Multiply all three polynomials element-wise
+        let expected = create_multilinear_poly(vec![1 * 2 * 1, 2 * 3 * 1, 3 * 4 * 1, 4 * 5 * 1]); // [2, 6, 12, 20]
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    #[should_panic(expected = "At least two polynomials are needed for multiplication")]
+    fn test_element_wise_mul_panics_on_single_poly() {
+        let poly = create_multilinear_poly(vec![1, 2, 3, 4]);
+        let product = ProductPolynomial::new(vec![poly]);
+
+        product.element_wise_mul(); // Should panic
     }
 
     #[test]

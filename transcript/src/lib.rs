@@ -37,6 +37,12 @@ impl<F: PrimeField, H: Clone + Digest + FixedOutputReset> Transcript<F, H> {
     }
 }
 
+impl<F: PrimeField, H: Clone + Digest + FixedOutputReset> Default for Transcript<F, H> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

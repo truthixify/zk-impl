@@ -2,7 +2,7 @@ use ark_bls12_381::Fq;
 use ark_ff::UniformRand;
 use criterion::{Criterion, black_box};
 use polynomials::multilinear::MultilinearPolynomial;
-use sumcheck::{prove, verify};
+use sumcheck::sumcheck_over_multilinear::{prove, verify};
 
 pub fn sumcheck_benchmarks(c: &mut Criterion) {
     let mut rng = rand::thread_rng();

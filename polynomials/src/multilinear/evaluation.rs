@@ -176,11 +176,17 @@ mod tests {
 
     #[test]
     fn test_evaluate() {
-        let evaluated_values = vec![Fq::from(0), Fq::from(0), Fq::from(3), Fq::from(8)];
+        // 00 -> 0
+        // 01 -> 0
+        // 10 -> 3
+        // 11 -> 8
+        // 0(1-a)(1-b) + 0(1-b)b + 3a(1-b) + 8ab
+        //
+        let evaluated_values = vec![fq(0), fq(0), fq(3), fq(8)];
         let polynomial = MultilinearPolynomial::new(evaluated_values);
-        let values = vec![Fq::from(6), Fq::from(2)];
+        let values = vec![fq(6), fq(2)];
 
-        assert_eq!(polynomial.evaluate(&values), Fq::from(78));
+        assert_eq!(polynomial.evaluate(&values), fq(78));
     }
 
     #[test]

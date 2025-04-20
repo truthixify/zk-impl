@@ -73,7 +73,7 @@ impl<F: PrimeField> Matrix<F> {
         for i in 0..self.nrows() {
             for j in 0..other.ncols() {
                 for k in 0..self.ncols() {
-                    new_rep[i][j] = new_rep[i][j] + self.rep[i][k] * other.rep[k][j];
+                    new_rep[i][j] += self.rep[i][k] * other.rep[k][j];
                 }
             }
         }
@@ -94,7 +94,7 @@ impl<F: PrimeField> Add for &Matrix<F> {
     type Output = Matrix<F>;
 
     fn add(self, rhs: Self) -> Self::Output {
-        self.add_matrices(&rhs)
+        self.add_matrices(rhs)
     }
 }
 
@@ -110,7 +110,7 @@ impl<F: PrimeField> Mul for &Matrix<F> {
     type Output = Matrix<F>;
 
     fn mul(self, rhs: Self) -> Self::Output {
-        self.mul_matrices(&rhs)
+        self.mul_matrices(rhs)
     }
 }
 

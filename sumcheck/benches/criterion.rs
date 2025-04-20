@@ -1,8 +1,8 @@
 use criterion::{Criterion, criterion_group, criterion_main};
 
-mod sumcheck;
+mod sumcheck_benchmarks;
 
-use sumcheck::sumcheck_benchmarks;
+use sumcheck_benchmarks::sumcheck_benchmarks;
 
 criterion_group!(
     name = sumcheck;

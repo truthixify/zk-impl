@@ -26,7 +26,7 @@ impl Gate {
         }
     }
 
-    pub fn eval_gate<F: PrimeField>(&self, layer_eval: &Vec<F>) -> F {
+    pub fn eval_gate<F: PrimeField>(&self, layer_eval: &[F]) -> F {
         let left_val = layer_eval[self.left_index];
         let right_val = layer_eval[self.right_index];
 

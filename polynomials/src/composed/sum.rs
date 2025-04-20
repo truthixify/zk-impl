@@ -1,6 +1,8 @@
 use super::product::ProductPolynomial;
+use crate::multilinear::MultilinearPolynomial;
 use ark_ff::PrimeField;
 
+#[derive(Debug, Clone)]
 pub struct SumPolynomial<F: PrimeField> {
     product_polynomials: Vec<ProductPolynomial<F>>,
 }
@@ -33,14 +35,37 @@ impl<F: PrimeField> SumPolynomial<F> {
             .sum()
     }
 
-    pub fn partial_evaluate(&self, points: &[(F, usize)]) -> Self {
+    pub fn partial_evaluate_many_vars(&self, points: &[(F, usize)]) -> Self {
         let product_polynomials = self
             .product_polynomials
             .iter()
-            .map(|prod_poly| prod_poly.partial_evaluate(points))
+            .map(|prod_poly| prod_poly.partial_evaluate_many_vars(points))
             .collect();
 
         Self::new(product_polynomials)
+    }
+
+    pub fn partial_evaluate(&self, point: F, var_index: usize) -> Self {
+        self.partial_evaluate_many_vars(&[(point, var_index)])
+    }
+
+    pub fn element_wise_add(&self) -> MultilinearPolynomial<F> {
+        assert!(
+            self.product_polynomials.len() > 1,
+            "At least two product polynomials are needed for addition"
+        );
+
+        let init = self.product_polynomials[0].element_wise_mul();
+
+        self.product_polynomials
+            .iter()
+            .skip(1)
+            .map(|prod_poly| prod_poly.element_wise_mul())
+            .fold(init, |acc, curr| acc.tensor_add(&curr))
+    }
+
+    pub fn reduce(&self) -> Vec<F> {
+        self.element_wise_add().evals_slice().to_vec()
     }
 
     pub fn to_bytes(&self) -> Vec<u8> {
@@ -111,17 +136,42 @@ mod tests {
         let prod2 = create_product_poly(&[&[5, 6, 7, 8]]);
         let sum_poly = SumPolynomial::new(vec![prod1.clone(), prod2.clone()]);
 
-        let partial = sum_poly.partial_evaluate(&[(fq(1), 0)]);
+        let partial = sum_poly.partial_evaluate(fq(1), 0);
 
         for (original, reduced) in sum_poly
             .product_polynomials
             .iter()
             .zip(partial.product_polynomials.iter())
         {
-            let expected = original.partial_evaluate(&[(fq(1), 0)]);
+            let expected = original.partial_evaluate(fq(1), 0);
 
             assert_eq!(*reduced, expected);
         }
+    }
+
+    #[test]
+    fn test_element_wise_add() {
+        let prod1 = create_product_poly(&[&[1, 1], &[1, 1]]);
+        let prod2 = create_product_poly(&[&[2, 2], &[1, 1]]);
+        let prod3 = create_product_poly(&[&[3, 3], &[1, 1]]);
+
+        let sum_poly = SumPolynomial::new(vec![prod1, prod2, prod3]);
+        let result = sum_poly.element_wise_add();
+
+        // All element-wise muls are just the values: [1, 1], [2, 2], [3, 3]
+        // Sum: [1+2+3, 1+2+3] = [6, 6]
+        let expected = create_multilinear_poly(&[6, 6]);
+
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    #[should_panic(expected = "At least two product polynomials are needed for addition")]
+    fn test_element_wise_add_panics_on_single_product() {
+        let prod = create_product_poly(&[&[1, 2]]);
+        let sum_poly = SumPolynomial::new(vec![prod]);
+
+        sum_poly.element_wise_add();
     }
 
     #[test]
