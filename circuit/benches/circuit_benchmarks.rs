@@ -1,6 +1,6 @@
 use ark_bls12_381::Fq;
 use ark_ff::UniformRand;
-use circuit::{Circuit, Gate, Layer, Op};
+use circuit::{circuit::Circuit, gate::Gate, gate::Op, layer::Layer};
 use criterion::{Criterion, black_box};
 use rand::Rng;
 
