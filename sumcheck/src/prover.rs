@@ -6,7 +6,7 @@ use transcript::Transcript;
 pub fn partial_prove<F: PrimeField>(
     mut sum_polynomial: SumPolynomial<F>,
     transcript: &mut Transcript<F, Keccak256>,
-) -> (F, Vec<DenseUnivariatePolynomial<F>>, Vec<F>) {
+) -> (F, Vec<DenseUnivariatePolynomial<F>>) {
     let claimed_sum = sum_polynomial
         .element_wise_add()
         .evals_slice()
@@ -46,12 +46,12 @@ pub fn partial_prove<F: PrimeField>(
         sum_polynomial = sum_polynomial.partial_evaluate(challenge, 0);
     }
 
-    (claimed_sum, round_polynomials, challenges)
+    (claimed_sum, round_polynomials)
 }
 
 pub fn prove<F: PrimeField>(
     sum_polynomial: SumPolynomial<F>,
-) -> (F, Vec<DenseUnivariatePolynomial<F>>, Vec<F>) {
+) -> (F, Vec<DenseUnivariatePolynomial<F>>) {
     let mut transcript: Transcript<F, Keccak256> = Transcript::new();
 
     transcript.append(&sum_polynomial.to_bytes());

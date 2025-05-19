@@ -1,25 +1,55 @@
 use ark_bls12_381::Fq;
 use ark_ff::UniformRand;
 use criterion::{Criterion, black_box};
-use polynomials::multilinear::MultilinearPolynomial;
-use sumcheck::sumcheck_over_multilinear::{prove, verify};
+use polynomials::{
+    composed::{ProductPolynomial, SumPolynomial},
+    multilinear::MultilinearPolynomial,
+};
+use sumcheck::{prove, verify};
+
+// Generate a synthetic SumPolynomial for testing
+fn setup_polynomial(num_evals: usize) -> SumPolynomial<Fq> {
+    let mut rng = rand::thread_rng();
+    let mut products = Vec::new();
+
+    for _ in 0..2 {
+        let mut evals1 = Vec::new();
+        let mut evals2 = Vec::new();
+
+        for _ in 0..num_evals {
+            let eval1 = Fq::rand(&mut rng);
+            let eval2 = Fq::rand(&mut rng);
+
+            evals1.push(eval1);
+            evals2.push(eval2);
+        }
+
+        let poly1 = MultilinearPolynomial::new(evals1);
+        let poly2 = MultilinearPolynomial::new(evals2);
+
+        products.push(ProductPolynomial::new(vec![poly1, poly2]));
+    }
+
+    SumPolynomial::new(products)
+}
 
 pub fn sumcheck_benchmarks(c: &mut Criterion) {
-    let mut rng = rand::thread_rng();
     let mut group = c.benchmark_group("sumcheck");
 
-    let poly_size = 1 << 12; // 2^12 = 4096 values
-    let polynomial =
-        MultilinearPolynomial::new((0..poly_size).map(|_| Fq::rand(&mut rng)).collect());
-    let sum: Fq = polynomial.evals_slice().iter().copied().sum();
+    let sum_polynomial = setup_polynomial(16);
+    let (claimed_sum, round_polys) = prove(sum_polynomial.clone());
 
     group.bench_function("sumcheck prove", |b| {
-        b.iter(|| black_box(prove(&polynomial, sum)))
+        b.iter(|| black_box(prove(sum_polynomial.clone())))
     });
 
-    let proof = prove(&polynomial, sum);
-
     group.bench_function("sumcheck verify", |b| {
-        b.iter(|| black_box(verify(&polynomial, &proof)))
+        b.iter(|| {
+            black_box(verify(
+                sum_polynomial.clone(),
+                claimed_sum,
+                round_polys.clone(),
+            ))
+        })
     });
 }

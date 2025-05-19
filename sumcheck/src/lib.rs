@@ -116,7 +116,7 @@ mod tests {
     // This test is from lambdaclass blog: https://blog.lambdaclass.com/gkr-protocol-a-step-by-step-example/
     #[test]
     fn test_full_sumcheck() {
-        let (claimed_sum, round_polys, _) = prove(sum_poly());
+        let (claimed_sum, round_polys) = prove(sum_poly());
 
         assert!(verify(sum_poly(), claimed_sum, round_polys))
     }
@@ -134,7 +134,7 @@ mod tests {
 
         let sum_polynomial = SumPolynomial::new(vec![product_poly1, product_poly2]);
 
-        let (claimed_sum, round_polys, _) = prove(sum_polynomial.clone());
+        let (claimed_sum, round_polys) = prove(sum_polynomial.clone());
 
         let verified = verify(sum_polynomial.clone(), claimed_sum, round_polys);
 
