@@ -24,6 +24,10 @@ impl<F: PrimeField> SumPolynomial<F> {
         }
     }
 
+    pub fn n_vars(&self) -> usize {
+        self.product_polynomials[0].n_vars()
+    }
+
     pub fn degree(&self) -> usize {
         self.product_polynomials[0].degree()
     }

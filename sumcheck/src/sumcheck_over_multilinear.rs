@@ -1,4 +1,4 @@
-use ark_ff::{BigInteger, PrimeField};
+use ark_ff::PrimeField;
 use polynomials::multilinear::MultilinearPolynomial;
 use polynomials::univariate::DenseUnivariatePolynomial as UnivariatePolynomial;
 use sha3::Keccak256;
@@ -35,11 +35,7 @@ pub fn prove<F: PrimeField>(
         let round_polynomial = skip_one_and_sum_over_boolean_hypercube(&polynomial);
 
         transcript.append(
-            &round_polynomial
-                .coefficients_slice()
-                .iter()
-                .flat_map(|coeff| coeff.into_bigint().to_bytes_be())
-                .collect::<Vec<_>>(),
+            &round_polynomial.to_bytes()
         );
 
         round_polynomials.push(round_polynomial);

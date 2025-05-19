@@ -18,6 +18,10 @@ impl<F: PrimeField> ProductPolynomial<F> {
         Self { polynomials }
     }
 
+    pub fn n_vars(&self) -> usize {
+        self.polynomials[0].n_vars()
+    }
+
     pub fn degree(&self) -> usize {
         self.polynomials.len()
     }
