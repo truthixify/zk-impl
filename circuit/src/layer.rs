@@ -35,14 +35,17 @@ impl<F: PrimeField> Layer<F> {
         &self,
     ) -> (MultilinearPolynomial<F>, MultilinearPolynomial<F>) {
         let num_boolean_hypercube_evals = 1 << self.num_layer_vars();
-        let layer_index = self.layer_index();
 
         let mut add_i_evals = vec![F::ZERO; num_boolean_hypercube_evals];
         let mut mul_i_evals = vec![F::ZERO; num_boolean_hypercube_evals];
 
         for gate in &self.gates {
-            let postional_index =
-                get_positional_index(layer_index, gate.output, gate.left_index, gate.right_index);
+            let postional_index = get_positional_index(
+                self.layer_index(),
+                gate.output,
+                gate.left_index,
+                gate.right_index,
+            );
 
             match gate.op {
                 Op::Add => add_i_evals[postional_index] = F::ONE,

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module type="EMPTY_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/circuit/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/circuit/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/freivald/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/gkr/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/polynomials/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/polynomials/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/reed-solomon-fingerprinting/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/shamir-secret-sharing/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/shamir-secret-sharing/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/sumcheck/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/sumcheck/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/transcript/benches" isTestSource="true" />
+      <sourceFolder url="file://$MODULE_DIR$/transcript/src" isTestSource="false" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+  </component>
+</module>

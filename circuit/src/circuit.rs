@@ -1,11 +1,14 @@
 use crate::layer::Layer;
 use ark_ff::PrimeField;
-use polynomials::multilinear::MultilinearPolynomial;
+use polynomials::{
+    composed::{ProductPolynomial, SumPolynomial},
+    multilinear::MultilinearPolynomial,
+};
 
 #[derive(Debug)]
 pub struct Circuit<F: PrimeField> {
-    layers: Vec<Layer<F>>,
-    layer_evals: Vec<Vec<F>>,
+    pub layers: Vec<Layer<F>>,
+    pub layer_evals: Vec<Vec<F>>,
 }
 
 impl<F: PrimeField> Circuit<F> {
@@ -25,17 +28,17 @@ impl<F: PrimeField> Circuit<F> {
 
     pub fn evaluate(&mut self, initial_layer_eval: Vec<F>) -> Vec<F> {
         let mut current_layer_eval = initial_layer_eval;
-        let mut resultant_evals = vec![];
+        let mut resultant_evals = Vec::with_capacity(self.layers.len() + 1);
 
         resultant_evals.push(current_layer_eval.clone());
 
         for layer in self.layers.iter().rev() {
-            let max_layer_index = layer
-                .gates
-                .iter()
-                .map(|gate| gate.output)
-                .max()
-                .unwrap_or(0);
+            let mut max_layer_index = 0;
+
+            for gate in &layer.gates {
+                max_layer_index = max_layer_index.max(gate.output);
+            }
+
             let mut evals = vec![F::ZERO; max_layer_index + 1];
 
             for gate in layer.gates.iter() {
@@ -51,7 +54,7 @@ impl<F: PrimeField> Circuit<F> {
         resultant_evals.reverse();
         self.layer_evals = resultant_evals.clone();
 
-        (&resultant_evals[0]).to_vec()
+        resultant_evals[0].clone()
     }
 
     pub fn add_i_and_mul_i_polynomials(
@@ -68,6 +71,19 @@ impl<F: PrimeField> Circuit<F> {
         );
 
         MultilinearPolynomial::new(self.layer_evals[layer_index].clone())
+    }
+
+    pub fn f_i_bc_polynomial(&self, layer_index: usize) -> SumPolynomial<F> {
+        let (add_i_bc, mul_i_bc) = self.add_i_and_mul_i_polynomials(layer_index);
+        let w_i_b = self.w_i_polynomial(layer_index + 1);
+        let w_i_c = self.w_i_polynomial(layer_index + 1);
+        let add_wbc = w_i_b.tensor_add(&w_i_c);
+        let mul_wbc = w_i_b.tensor_mul(&w_i_c);
+
+        let add_i_product_polynomial = ProductPolynomial::new(vec![add_i_bc, add_wbc]);
+        let mul_i_product_polynomial = ProductPolynomial::new(vec![mul_i_bc, mul_wbc]);
+
+        SumPolynomial::new(vec![add_i_product_polynomial, mul_i_product_polynomial])
     }
 }
 
